@@ -68,6 +68,19 @@ class MainWindowTests(unittest.TestCase):
         self.window._prefix_line("- [ ] ")
         self.assertEqual(self.window._content_edit.toPlainText(), "- [ ] hello")
 
+    def test_toolbar_can_be_customized_and_persisted(self) -> None:
+        self.assertTrue(self.window._format_actions["bold"].isVisible())
+        self.assertFalse(self.window._format_actions["heading"].isVisible())
+
+        self.window._toolbar_toggle_actions["heading"].setChecked(True)
+        self.window._toolbar_toggle_actions["bold"].setChecked(False)
+
+        saved = self.storage.load_settings().toolbar_actions
+        self.assertIn("heading", saved)
+        self.assertNotIn("bold", saved)
+        self.assertTrue(self.window._format_actions["heading"].isVisible())
+        self.assertFalse(self.window._format_actions["bold"].isVisible())
+
 
 if __name__ == "__main__":
     unittest.main()

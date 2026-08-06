@@ -105,6 +105,9 @@ class AppSettings:
     window_x: int = 100
     window_y: int = 100
     sidebar_folder_height: int = 170
+    toolbar_actions: list[str] = field(
+        default_factory=lambda: ["bold", "italic", "checklist"]
+    )
 
     def to_dict(self) -> dict:
         """Serialize to a plain dictionary."""
@@ -121,6 +124,7 @@ class AppSettings:
             "window_x": self.window_x,
             "window_y": self.window_y,
             "sidebar_folder_height": self.sidebar_folder_height,
+            "toolbar_actions": self.toolbar_actions,
         }
 
     @classmethod
@@ -130,4 +134,6 @@ class AppSettings:
         for key in s.to_dict():
             if key in data:
                 setattr(s, key, data[key])
+        if not isinstance(s.toolbar_actions, list):
+            s.toolbar_actions = ["bold", "italic", "checklist"]
         return s

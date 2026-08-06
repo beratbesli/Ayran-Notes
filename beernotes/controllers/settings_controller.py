@@ -70,6 +70,11 @@ class SettingsController(QObject):
         self._settings.preview_visible = visible
         self._apply()
 
+    def set_toolbar_actions(self, actions: list[str]) -> None:
+        """Persist the ordered set of tools shown above the editor."""
+        self._settings.toolbar_actions = list(dict.fromkeys(actions))
+        self._apply()
+
     def save_window_geometry(self, x: int, y: int, w: int, h: int) -> None:
         """Silently save window position and size (no broadcast)."""
         self._settings.window_x = x

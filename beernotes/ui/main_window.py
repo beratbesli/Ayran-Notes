@@ -224,11 +224,16 @@ class MainWindow(QMainWindow):
             if shortcut:
                 action.setShortcut(QKeySequence(shortcut))
             self._format_actions[key] = action
-        self._editor_toolbar.addSeparator()
+        self._toolbar_separator = self._editor_toolbar.addSeparator()
         self._act_attach_file = self._editor_toolbar.addAction("＋")
         self._act_attach_file.triggered.connect(lambda: self._attach_file(False))
         self._act_attach_image = self._editor_toolbar.addAction("▧")
         self._act_attach_image.triggered.connect(lambda: self._attach_file(True))
+        self._toolbar_actions = {
+            **self._format_actions,
+            "attach_file": self._act_attach_file,
+            "attach_image": self._act_attach_image,
+        }
 
     def _build_menus(self) -> None:
         mb = self.menuBar()
@@ -245,8 +250,12 @@ class MainWindow(QMainWindow):
         self._act_delete.triggered.connect(self._on_delete_note)
         self._file_menu.addAction(self._act_delete)
         self._file_menu.addSeparator()
-        self._file_menu.addAction(self._act_attach_file)
-        self._file_menu.addAction(self._act_attach_image)
+        self._act_file_attach = QAction(self)
+        self._act_file_attach.triggered.connect(lambda: self._attach_file(False))
+        self._file_menu.addAction(self._act_file_attach)
+        self._act_image_attach = QAction(self)
+        self._act_image_attach.triggered.connect(lambda: self._attach_file(True))
+        self._file_menu.addAction(self._act_image_attach)
 
         self._file_menu.addSeparator()
 
@@ -290,6 +299,25 @@ class MainWindow(QMainWindow):
         self._act_preview.setChecked(self._settings_ctrl.settings.preview_visible)
         self._act_preview.triggered.connect(self._on_toggle_preview)
         self._view_menu.addAction(self._act_preview)
+
+        # Extras / customizable editor toolbar
+        self._extras_menu = mb.addMenu("")
+        self._customize_toolbar_menu = self._extras_menu.addMenu("")
+        self._toolbar_toggle_actions = {}
+        selected = set(self._settings_ctrl.settings.toolbar_actions)
+        for key in self._toolbar_actions:
+            toggle = QAction(self)
+            toggle.setCheckable(True)
+            toggle.setChecked(key in selected)
+            toggle.toggled.connect(
+                lambda checked, tool=key: self._set_toolbar_action_visible(tool, checked)
+            )
+            self._customize_toolbar_menu.addAction(toggle)
+            self._toolbar_toggle_actions[key] = toggle
+        self._extras_menu.addSeparator()
+        self._act_reset_toolbar = QAction(self)
+        self._act_reset_toolbar.triggered.connect(self._reset_toolbar)
+        self._extras_menu.addAction(self._act_reset_toolbar)
 
         # Settings
         self._settings_menu = mb.addMenu("")
@@ -349,8 +377,8 @@ class MainWindow(QMainWindow):
         self._file_menu.setTitle(t("file"))
         self._act_new.setText(t("new_note"))
         self._update_delete_action_text()
-        self._act_attach_file.setText(t("attach_file"))
-        self._act_attach_image.setText(t("attach_image"))
+        self._act_file_attach.setText(t("attach_file"))
+        self._act_image_attach.setText(t("attach_image"))
         self._act_quit.setText(t("close"))
         self._edit_menu.setTitle(t("edit"))
         self._act_undo.setText(t("undo"))
@@ -360,6 +388,11 @@ class MainWindow(QMainWindow):
         self._view_menu.setTitle(t("view"))
         self._act_sidebar.setText(t("toggle_sidebar"))
         self._act_preview.setText(t("toggle_preview"))
+        self._extras_menu.setTitle(t("extras"))
+        self._customize_toolbar_menu.setTitle(t("customize_toolbar"))
+        self._act_reset_toolbar.setText(t("reset_toolbar"))
+        for key, toggle in self._toolbar_toggle_actions.items():
+            toggle.setText(t(key))
         self._settings_menu.setTitle(t("settings"))
         self._act_prefs.setText(t("preferences"))
         self._help_menu.setTitle(t("help"))
@@ -380,7 +413,36 @@ class MainWindow(QMainWindow):
         self._act_sidebar.setChecked(s.sidebar_visible)
         self._preview.setVisible(s.preview_visible)
         self._act_preview.setChecked(s.preview_visible)
+        self._sync_toolbar_visibility(s.toolbar_actions)
         self._update_preview()
+
+    def _set_toolbar_action_visible(self, key: str, visible: bool) -> None:
+        """Add or remove a tool from the compact editor toolbar."""
+        selected = [
+            tool for tool in self._toolbar_actions
+            if self._toolbar_toggle_actions[tool].isChecked()
+        ]
+        self._settings_ctrl.set_toolbar_actions(selected)
+
+    def _sync_toolbar_visibility(self, selected_actions: list[str]) -> None:
+        selected = {
+            key for key in selected_actions
+            if key in self._toolbar_actions
+        }
+        for key, action in self._toolbar_actions.items():
+            action.setVisible(key in selected)
+            toggle = self._toolbar_toggle_actions[key]
+            toggle.blockSignals(True)
+            toggle.setChecked(key in selected)
+            toggle.blockSignals(False)
+        has_formatting = bool(selected.intersection(self._format_actions))
+        has_attachments = bool(selected.intersection({"attach_file", "attach_image"}))
+        self._toolbar_separator.setVisible(has_formatting and has_attachments)
+        self._editor_toolbar.setVisible(bool(selected))
+
+    def _reset_toolbar(self) -> None:
+        defaults = ["bold", "italic", "checklist"]
+        self._settings_ctrl.set_toolbar_actions(defaults)
 
     # ==================================================================
     # Sidebar handlers
