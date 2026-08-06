@@ -154,6 +154,10 @@ class MainWindow(QMainWindow):
         self._title_edit.setObjectName("titleEdit")
         editor_layout.addWidget(self._title_edit)
 
+        self._tag_edit = QLineEdit()
+        self._tag_edit.setObjectName("tagEdit")
+        editor_layout.addWidget(self._tag_edit)
+
         self._content_edit = QPlainTextEdit()
         self._content_edit.setObjectName("contentEdit")
         self._content_edit.setTabStopDistance(32.0)
@@ -263,6 +267,7 @@ class MainWindow(QMainWindow):
 
         # Editor → auto-save
         self._title_edit.textChanged.connect(self._schedule_save)
+        self._tag_edit.textChanged.connect(self._schedule_save)
         self._content_edit.textChanged.connect(self._schedule_save)
         self._content_edit.textChanged.connect(self._update_preview)
         self._content_edit.textChanged.connect(self._update_status)
@@ -280,6 +285,7 @@ class MainWindow(QMainWindow):
         self._folder_label.setText(t("folders").upper())
         self._notes_label.setText(t("all_notes").upper())
         self._title_edit.setPlaceholderText(t("note_title_placeholder"))
+        self._tag_edit.setPlaceholderText(t("tags_placeholder"))
         self._content_edit.setPlaceholderText(t("note_content_placeholder"))
 
         # Menus
@@ -321,6 +327,14 @@ class MainWindow(QMainWindow):
         all_item = QListWidgetItem("📋 " + self._i18n.t("all_notes"))
         all_item.setData(Qt.ItemDataRole.UserRole, "__all__")
         self._folder_list.addItem(all_item)
+        for icon, label_key, value in (
+            ("★", "favorites", "__favorites__"),
+            ("▣", "archive", "__archive__"),
+            ("♲", "trash", "__trash__"),
+        ):
+            item = QListWidgetItem(f"{icon} " + self._i18n.t(label_key))
+            item.setData(Qt.ItemDataRole.UserRole, value)
+            self._folder_list.addItem(item)
         for folder in self._note_ctrl.get_folders():
             item = QListWidgetItem("📁 " + folder)
             item.setData(Qt.ItemDataRole.UserRole, folder)
@@ -351,7 +365,7 @@ class MainWindow(QMainWindow):
             self._note_list.addItem(empty)
         else:
             for note in notes:
-                prefix = "📌 " if note.is_pinned else ""
+                prefix = ("★ " if note.is_favorite else "") + ("📌 " if note.is_pinned else "")
                 display = prefix + (note.title or self._i18n.t("untitled"))
                 item = QListWidgetItem(display)
                 item.setData(Qt.ItemDataRole.UserRole, note.id)
@@ -390,10 +404,13 @@ class MainWindow(QMainWindow):
             return
         self._current_note = note
         self._title_edit.blockSignals(True)
+        self._tag_edit.blockSignals(True)
         self._content_edit.blockSignals(True)
         self._title_edit.setText(note.title)
+        self._tag_edit.setText(", ".join(note.tags))
         self._content_edit.setPlainText(note.content)
         self._title_edit.blockSignals(False)
+        self._tag_edit.blockSignals(False)
         self._content_edit.blockSignals(False)
         self._dirty = False
         self._update_preview()
@@ -402,6 +419,8 @@ class MainWindow(QMainWindow):
     def _on_new_note(self) -> None:
         self._flush_pending_save()
         folder = self._current_folder if self._current_folder and self._current_folder != "__all__" else "General"
+        if folder.startswith("__"):
+            folder = "General"
         note = self._note_ctrl.create_note(
             title=self._i18n.t("untitled"),
             folder=folder,
@@ -415,21 +434,10 @@ class MainWindow(QMainWindow):
     def _on_delete_note(self) -> None:
         if not self._current_note:
             return
-        reply = QMessageBox.question(
-            self,
-            self._i18n.t("confirm_delete_title"),
-            self._i18n.t("confirm_delete"),
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-        )
-        if reply == QMessageBox.StandardButton.Yes:
-            self._save_timer.stop()
-            self._dirty = False
-            self._note_ctrl.delete_note(self._current_note.id)
-            self._current_note = None
-            self._title_edit.clear()
-            self._content_edit.clear()
-            self._preview.clear()
-            self._refresh_note_list()
+        if self._current_folder == "__trash__":
+            self._delete_specific_note(self._current_note.id)
+        else:
+            self._trash_note(self._current_note.id)
 
     def _on_note_context_menu(self, pos) -> None:
         item = self._note_list.itemAt(pos)
@@ -445,10 +453,31 @@ class MainWindow(QMainWindow):
         menu = QMenu(self)
         t = self._i18n.t
 
+        if note.is_trashed:
+            restore_action = menu.addAction(t("restore_note"))
+            restore_action.triggered.connect(lambda: self._restore_note(note_id))
+            menu.addSeparator()
+            delete_action = menu.addAction(t("delete_permanently"))
+            delete_action.triggered.connect(lambda: self._delete_specific_note(note_id))
+            menu.exec(self._note_list.mapToGlobal(pos))
+            return
+
+        favorite_text = (
+            t("remove_from_favorites") if note.is_favorite else t("add_to_favorites")
+        )
+        favorite_action = menu.addAction(favorite_text)
+        favorite_action.triggered.connect(lambda: self._toggle_favorite(note_id))
+
         # Pin / Unpin
         pin_text = t("unpin_note") if note.is_pinned else t("pin_note")
         pin_action = menu.addAction(pin_text)
         pin_action.triggered.connect(lambda: self._toggle_pin(note_id))
+
+        archive_text = t("unarchive_note") if note.is_archived else t("archive_note")
+        archive_action = menu.addAction(archive_text)
+        archive_action.triggered.connect(
+            lambda: self._set_archived(note_id, not note.is_archived)
+        )
 
         # Move to folder
         move_menu = menu.addMenu(t("move_to_folder"))
@@ -462,14 +491,48 @@ class MainWindow(QMainWindow):
         new_folder_action.triggered.connect(lambda: self._create_folder_and_move(note_id))
 
         menu.addSeparator()
-        del_action = menu.addAction(t("delete_note"))
-        del_action.triggered.connect(lambda: self._delete_specific_note(note_id))
+        trash_action = menu.addAction(t("move_to_trash"))
+        trash_action.triggered.connect(lambda: self._trash_note(note_id))
 
         menu.exec(self._note_list.mapToGlobal(pos))
 
     def _toggle_pin(self, note_id: str) -> None:
         self._note_ctrl.toggle_pin(note_id)
         self._refresh_note_list()
+
+    def _toggle_favorite(self, note_id: str) -> None:
+        self._note_ctrl.toggle_favorite(note_id)
+        self._refresh_note_list()
+
+    def _set_archived(self, note_id: str, archived: bool) -> None:
+        self._flush_pending_save()
+        self._note_ctrl.set_archived(note_id, archived)
+        self._clear_current_note(note_id)
+        self._refresh_note_list()
+
+    def _trash_note(self, note_id: str) -> None:
+        self._flush_pending_save()
+        self._note_ctrl.move_to_trash(note_id)
+        self._clear_current_note(note_id)
+        self._refresh_note_list()
+
+    def _restore_note(self, note_id: str) -> None:
+        self._note_ctrl.restore_note(note_id)
+        self._clear_current_note(note_id)
+        self._refresh_note_list()
+
+    def _clear_current_note(self, note_id: str) -> None:
+        if not self._current_note or self._current_note.id != note_id:
+            return
+        self._save_timer.stop()
+        self._dirty = False
+        self._current_note = None
+        for editor in (self._title_edit, self._tag_edit, self._content_edit):
+            editor.blockSignals(True)
+            editor.clear()
+            editor.blockSignals(False)
+        self._preview.clear()
+        self._update_status()
 
     def _move_note(self, note_id: str, folder: str) -> None:
         self._note_ctrl.move_to_folder(note_id, folder)
@@ -491,15 +554,8 @@ class MainWindow(QMainWindow):
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
         if reply == QMessageBox.StandardButton.Yes:
-            if self._current_note and self._current_note.id == note_id:
-                self._save_timer.stop()
-                self._dirty = False
             self._note_ctrl.delete_note(note_id)
-            if self._current_note and self._current_note.id == note_id:
-                self._current_note = None
-                self._title_edit.clear()
-                self._content_edit.clear()
-                self._preview.clear()
+            self._clear_current_note(note_id)
             self._refresh_note_list()
 
     # ==================================================================
@@ -522,6 +578,11 @@ class MainWindow(QMainWindow):
         if not self._current_note or not self._dirty:
             return
         self._current_note.title = self._title_edit.text()
+        self._current_note.tags = list(dict.fromkeys(
+            tag.strip()
+            for tag in self._tag_edit.text().split(",")
+            if tag.strip()
+        ))
         self._current_note.content = self._content_edit.toPlainText()
         try:
             self._note_ctrl.save_note(self._current_note)

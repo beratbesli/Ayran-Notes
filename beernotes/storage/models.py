@@ -27,6 +27,10 @@ class Note:
     folder: str = "General"
     is_markdown: bool = True
     is_pinned: bool = False
+    is_favorite: bool = False
+    is_archived: bool = False
+    is_trashed: bool = False
+    tags: list[str] = field(default_factory=list)
     created_at: str = field(default_factory=_utcnow)
     updated_at: str = field(default_factory=_utcnow)
 
@@ -43,6 +47,10 @@ class Note:
             "folder": self.folder,
             "is_markdown": self.is_markdown,
             "is_pinned": self.is_pinned,
+            "is_favorite": self.is_favorite,
+            "is_archived": self.is_archived,
+            "is_trashed": self.is_trashed,
+            "tags": self.tags,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
         }
@@ -50,6 +58,13 @@ class Note:
     @classmethod
     def from_dict(cls, data: dict) -> Note:
         """Deserialize from a dictionary."""
+        raw_tags = data.get("tags", [])
+        tags = []
+        if isinstance(raw_tags, list):
+            tags = list(dict.fromkeys(
+                tag.strip() for tag in raw_tags
+                if isinstance(tag, str) and tag.strip()
+            ))
         return cls(
             id=data.get("id", _new_id()),
             title=data.get("title", "Untitled"),
@@ -57,6 +72,10 @@ class Note:
             folder=data.get("folder", "General"),
             is_markdown=data.get("is_markdown", True),
             is_pinned=data.get("is_pinned", False),
+            is_favorite=data.get("is_favorite", False),
+            is_archived=data.get("is_archived", False),
+            is_trashed=data.get("is_trashed", False),
+            tags=tags,
             created_at=data.get("created_at", _utcnow()),
             updated_at=data.get("updated_at", _utcnow()),
         )

@@ -32,6 +32,14 @@ class NoteController(QObject):
     def list_notes(self, folder: Optional[str] = None) -> List[Note]:
         """Return notes, optionally filtered by *folder*."""
         notes = self._storage.list_notes()
+        if folder == "__trash__":
+            return [note for note in notes if note.is_trashed]
+        if folder == "__archive__":
+            return [note for note in notes if note.is_archived and not note.is_trashed]
+
+        notes = [note for note in notes if not note.is_archived and not note.is_trashed]
+        if folder == "__favorites__":
+            return [note for note in notes if note.is_favorite]
         if folder and folder != "__all__":
             notes = [n for n in notes if n.folder == folder]
         return notes
@@ -47,12 +55,22 @@ class NoteController(QObject):
             return self.list_notes(folder)
         return [
             n for n in self.list_notes(folder)
-            if q in n.title.lower() or q in n.content.lower()
+            if (
+                q in n.title.lower()
+                or q in n.content.lower()
+                or any(q in tag.lower() for tag in n.tags)
+            )
         ]
 
     def get_folders(self) -> List[str]:
         """Return sorted unique folder names."""
-        return self._storage.get_folders()
+        folders = {
+            note.folder
+            for note in self._storage.list_notes()
+            if not note.is_archived and not note.is_trashed
+        }
+        folders.add("General")
+        return sorted(folders)
 
     # ------------------------------------------------------------------
     # Write
@@ -85,6 +103,48 @@ class NoteController(QObject):
         note = self._storage.get_note(note_id)
         if note:
             note.is_pinned = not note.is_pinned
+            self._storage.save_note(note)
+            self.notes_changed.emit()
+            return note
+        return None
+
+    def toggle_favorite(self, note_id: str) -> Optional[Note]:
+        """Toggle whether a note appears in Favorites."""
+        note = self._storage.get_note(note_id)
+        if note:
+            note.is_favorite = not note.is_favorite
+            self._storage.save_note(note)
+            self.notes_changed.emit()
+            return note
+        return None
+
+    def set_archived(self, note_id: str, archived: bool = True) -> Optional[Note]:
+        """Archive or unarchive a note."""
+        note = self._storage.get_note(note_id)
+        if note:
+            note.is_archived = archived
+            note.is_trashed = False
+            self._storage.save_note(note)
+            self.notes_changed.emit()
+            return note
+        return None
+
+    def move_to_trash(self, note_id: str) -> Optional[Note]:
+        """Move a note to Trash without destroying it."""
+        note = self._storage.get_note(note_id)
+        if note:
+            note.is_trashed = True
+            note.is_pinned = False
+            self._storage.save_note(note)
+            self.notes_changed.emit()
+            return note
+        return None
+
+    def restore_note(self, note_id: str) -> Optional[Note]:
+        """Restore a note from Trash to its previous folder."""
+        note = self._storage.get_note(note_id)
+        if note:
+            note.is_trashed = False
             self._storage.save_note(note)
             self.notes_changed.emit()
             return note

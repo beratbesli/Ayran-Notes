@@ -43,6 +43,17 @@ class MainWindowTests(unittest.TestCase):
         self.assertEqual(self.storage.get_note(first.id).content, "must survive")
         self.assertEqual(self.storage.get_note(second.id).content, "")
 
+    def test_tags_and_trash_are_persisted(self) -> None:
+        note = self.notes.create_note("Tagged")
+        self.window._load_note(note.id)
+        self.window._tag_edit.setText("work, urgent, work")
+        self.window._flush_pending_save()
+
+        self.assertEqual(self.storage.get_note(note.id).tags, ["work", "urgent"])
+        self.window._trash_note(note.id)
+        self.assertTrue(self.storage.get_note(note.id).is_trashed)
+        self.assertIsNone(self.window._current_note)
+
 
 if __name__ == "__main__":
     unittest.main()

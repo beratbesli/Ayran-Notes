@@ -250,6 +250,16 @@ QPushButton#accentBtn:pressed {{
     font-size: {size}px;
     selection-background-color: {accent_selection};
 }}
+#tagEdit {{
+    background-color: transparent;
+    color: {p["secondary"]};
+    border: none;
+    border-bottom: 1px solid {p["separator"]};
+    border-radius: 0;
+    padding: 7px 2px;
+    font-size: {max(8, size - 1)}px;
+    selection-background-color: {accent_selection};
+}}
 #previewPanel {{
     background-color: {p["preview"]};
     color: {p["text"]};

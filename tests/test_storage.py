@@ -51,6 +51,22 @@ class StorageEngineTests(unittest.TestCase):
         self.assertEqual(persisted.title, "Original")
         self.assertEqual(list(self.storage.notes_dir.glob("*.tmp")), [])
 
+    def test_legacy_note_gets_new_organization_defaults(self) -> None:
+        note = Note(title="Legacy")
+        data = note.to_dict()
+        for key in ("tags", "is_favorite", "is_archived", "is_trashed"):
+            data.pop(key)
+        (self.storage.notes_dir / f"{note.id}.json").write_text(
+            json.dumps(data),
+            encoding="utf-8",
+        )
+
+        loaded = self.storage.get_note(note.id)
+        self.assertEqual(loaded.tags, [])
+        self.assertFalse(loaded.is_favorite)
+        self.assertFalse(loaded.is_archived)
+        self.assertFalse(loaded.is_trashed)
+
 
 if __name__ == "__main__":
     unittest.main()
