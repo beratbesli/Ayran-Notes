@@ -64,7 +64,7 @@ python3 run.py
 To add Beer Notes to your Linux application menu:
 
 ```bash
-# Edit the Exec path in beernotes.desktop to point to your install location
+# Edit the Exec and Icon paths to point to your install location
 sed -i "s|/opt/beernotes|$(pwd)|g" beernotes.desktop
 
 # Copy to your local applications directory
@@ -83,6 +83,8 @@ Beer-Notes/
 ├── beernotes/                  # Main application package
 │   ├── __init__.py
 │   ├── main.py                 # Application entry point
+│   ├── assets/
+│   │   └── beernotes.png       # Application icon
 │   ├── controllers/            # Business logic layer
 │   │   ├── note_controller.py  # Note CRUD & search
 │   │   └── settings_controller.py

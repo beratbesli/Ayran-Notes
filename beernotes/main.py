@@ -6,8 +6,9 @@ the main window.
 """
 
 import sys
+from importlib.resources import files
 
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QIcon
 from PyQt6.QtWidgets import QApplication
 
 from beernotes.controllers.note_controller import NoteController
@@ -22,6 +23,9 @@ def main() -> None:
     app = QApplication(sys.argv)
     app.setApplicationName("Beer Notes")
     app.setApplicationVersion("1.0.0")
+    app.setWindowIcon(
+        QIcon(str(files("beernotes").joinpath("assets", "beernotes.png")))
+    )
 
     # --- Core services ---
     storage = StorageEngine()
