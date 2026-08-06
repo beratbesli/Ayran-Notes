@@ -34,6 +34,7 @@ from PyQt6.QtWidgets import (
 from beernotes.controllers.note_controller import NoteController
 from beernotes.controllers.settings_controller import SettingsController
 from beernotes.exporters import SUPPORTED_SUFFIXES, export_note
+from beernotes.importers import import_note
 from beernotes.localization.i18n import I18n
 from beernotes.storage.models import AppSettings, Note
 from beernotes.ui.settings_dialog import SettingsDialog
@@ -258,6 +259,10 @@ class MainWindow(QMainWindow):
         self._act_image_attach.triggered.connect(lambda: self._attach_file(True))
         self._file_menu.addAction(self._act_image_attach)
         self._file_menu.addSeparator()
+        self._act_import = QAction(self)
+        self._act_import.setShortcut(QKeySequence("Ctrl+Shift+I"))
+        self._act_import.triggered.connect(self._import_notes)
+        self._file_menu.addAction(self._act_import)
         self._act_export = QAction(self)
         self._act_export.setShortcut(QKeySequence("Ctrl+Shift+E"))
         self._act_export.triggered.connect(self._export_current_note)
@@ -385,6 +390,7 @@ class MainWindow(QMainWindow):
         self._update_delete_action_text()
         self._act_file_attach.setText(t("attach_file"))
         self._act_image_attach.setText(t("attach_image"))
+        self._act_import.setText(t("import"))
         self._act_export.setText(t("export"))
         self._act_quit.setText(t("close"))
         self._edit_menu.setTitle(t("edit"))
@@ -839,6 +845,65 @@ class MainWindow(QMainWindow):
             )
             return
         self._statusbar.showMessage(t("export_success", path=str(path)), 5000)
+
+    def _import_notes(self) -> None:
+        """Import one or more external files as new notes."""
+        t = self._i18n.t
+        filters = ";;".join((
+            f"{t('supported_note_files')} (*.md *.markdown *.txt *.html *.htm *.json)",
+            f"{t('markdown_files')} (*.md *.markdown)",
+            f"{t('text_files')} (*.txt)",
+            f"{t('html_files')} (*.html *.htm)",
+            f"{t('json_files')} (*.json)",
+        ))
+        filenames, _ = QFileDialog.getOpenFileNames(
+            self,
+            t("import"),
+            str(Path.home()),
+            filters,
+        )
+        if not filenames:
+            return
+        self._flush_pending_save()
+        current_folder = self._current_folder or "General"
+        if current_folder.startswith("__"):
+            current_folder = "General"
+
+        imported_notes = []
+        failures = []
+        for filename in filenames:
+            try:
+                imported = import_note(Path(filename))
+                note = self._note_ctrl.create_note(
+                    imported.title,
+                    imported.folder or current_folder,
+                )
+                note.content = imported.content
+                note.tags = imported.tags
+                note.is_markdown = imported.is_markdown
+                self._note_ctrl.save_note(note)
+                imported_notes.append(note)
+            except (OSError, ValueError, TypeError) as error:
+                failures.append(f"{Path(filename).name}: {error}")
+
+        if imported_notes:
+            last_note = imported_notes[-1]
+            self._current_folder = (
+                last_note.folder if last_note.folder in self._note_ctrl.get_folders()
+                else "__all__"
+            )
+            self._refresh_note_list()
+            self._load_note(last_note.id)
+            self._statusbar.showMessage(
+                t("import_success", count=len(imported_notes)),
+                5000,
+            )
+        if failures:
+            QMessageBox.warning(
+                self,
+                t("import_failed"),
+                t("import_failed_detail", errors="\n".join(failures)),
+            )
 
     # ==================================================================
     # Auto-save

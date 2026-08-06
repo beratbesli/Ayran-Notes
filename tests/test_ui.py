@@ -99,6 +99,24 @@ class MainWindowTests(unittest.TestCase):
         self.assertIn("latest content", exported.read_text(encoding="utf-8"))
         self.assertEqual(self.storage.get_note(note.id).content, "latest content")
 
+    def test_imports_multiple_files_and_opens_the_last_note(self) -> None:
+        markdown_path = Path(self.temporary.name) / "first.md"
+        markdown_path.write_text("# First\n\n**Tags:** work\n\nMarkdown body")
+        text_path = Path(self.temporary.name) / "second.txt"
+        text_path.write_text("Second\n\nPlain body")
+
+        with patch(
+            "beernotes.ui.main_window.QFileDialog.getOpenFileNames",
+            return_value=([str(markdown_path), str(text_path)], ""),
+        ):
+            self.window._import_notes()
+
+        imported = {note.title: note for note in self.notes.list_notes("__all__")}
+        self.assertEqual(set(imported), {"First", "Second"})
+        self.assertEqual(imported["First"].tags, ["work"])
+        self.assertFalse(imported["Second"].is_markdown)
+        self.assertEqual(self.window._current_note.title, "Second")
+
 
 if __name__ == "__main__":
     unittest.main()
