@@ -64,14 +64,15 @@ python3 run.py
 To add Beer Notes to your Linux application menu:
 
 ```bash
-# Edit the Exec and Icon paths to point to your install location
-sed -i "s|/opt/beernotes|$(pwd)|g" beernotes.desktop
+# Install a shortcut for the current user (no sudo required)
+python3 install_shortcut.py
+```
 
-# Copy to your local applications directory
-cp beernotes.desktop ~/.local/share/applications/
+The installer automatically detects the repository, Python, icon, and XDG
+application-menu paths. To remove the shortcut later:
 
-# Update the desktop database
-update-desktop-database ~/.local/share/applications/ 2>/dev/null || true
+```bash
+python3 install_shortcut.py --uninstall
 ```
 
 ---
@@ -100,6 +101,7 @@ Beer-Notes/
 │       ├── settings_dialog.py  # Preferences dialog
 │       └── themes.py           # Dark/Light theme QSS engine
 ├── run.py                      # Convenience launcher
+├── install_shortcut.py         # Portable Linux shortcut installer
 ├── beernotes.desktop           # XDG desktop entry
 ├── requirements.txt            # Python dependencies
 ├── pyproject.toml              # PEP 621 project metadata
