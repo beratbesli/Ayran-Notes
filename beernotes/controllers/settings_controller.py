@@ -78,6 +78,11 @@ class SettingsController(QObject):
         self._settings.window_height = h
         self._storage.save_settings(self._settings)
 
+    def save_sidebar_folder_height(self, height: int) -> None:
+        """Silently persist the user-selected sidebar section height."""
+        self._settings.sidebar_folder_height = max(80, height)
+        self._storage.save_settings(self._settings)
+
     def reset_defaults(self) -> None:
         """Reset all settings to factory defaults."""
         self._settings = AppSettings()

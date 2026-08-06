@@ -96,24 +96,47 @@ class MainWindow(QMainWindow):
         self._new_btn.setObjectName("accentBtn")
         sidebar_layout.addWidget(self._new_btn)
 
+        # Resizable sidebar sections (folders | notes)
+        self._sidebar_splitter = QSplitter(Qt.Orientation.Vertical)
+        self._sidebar_splitter.setObjectName("sidebarSectionSplitter")
+        self._sidebar_splitter.setChildrenCollapsible(False)
+        self._sidebar_splitter.setHandleWidth(9)
+
+        folder_panel = QWidget()
+        folder_layout = QVBoxLayout(folder_panel)
+        folder_layout.setContentsMargins(0, 4, 0, 0)
+        folder_layout.setSpacing(2)
+
         # Folder section label
         self._folder_label = QLabel()
         self._folder_label.setObjectName("sectionLabel")
-        sidebar_layout.addWidget(self._folder_label)
+        folder_layout.addWidget(self._folder_label)
 
         # Folder list
         self._folder_list = QListWidget()
-        self._folder_list.setMaximumHeight(120)
-        sidebar_layout.addWidget(self._folder_list)
+        folder_layout.addWidget(self._folder_list, 1)
+        self._sidebar_splitter.addWidget(folder_panel)
+
+        notes_panel = QWidget()
+        notes_layout = QVBoxLayout(notes_panel)
+        notes_layout.setContentsMargins(0, 0, 0, 0)
+        notes_layout.setSpacing(2)
 
         # Notes section label
         self._notes_label = QLabel()
         self._notes_label.setObjectName("sectionLabel")
-        sidebar_layout.addWidget(self._notes_label)
+        notes_layout.addWidget(self._notes_label)
 
         # Note list
         self._note_list = QListWidget()
-        sidebar_layout.addWidget(self._note_list, 1)
+        notes_layout.addWidget(self._note_list, 1)
+        self._sidebar_splitter.addWidget(notes_panel)
+
+        self._sidebar_splitter.setStretchFactor(0, 1)
+        self._sidebar_splitter.setStretchFactor(1, 3)
+        self._initial_sidebar_folder_height = s.sidebar_folder_height
+        QTimer.singleShot(0, self._restore_sidebar_splitter)
+        sidebar_layout.addWidget(self._sidebar_splitter, 1)
 
         main_layout.addWidget(self._sidebar)
 
@@ -155,6 +178,18 @@ class MainWindow(QMainWindow):
         self._char_label = QLabel()
         self._statusbar.addPermanentWidget(self._word_label)
         self._statusbar.addPermanentWidget(self._char_label)
+
+    def _restore_sidebar_splitter(self) -> None:
+        """Restore the folder panel in pixels after Qt has completed layout."""
+        sizes = self._sidebar_splitter.sizes()
+        available = sum(sizes)
+        if available <= 0:
+            return
+        folder_height = min(
+            max(80, self._initial_sidebar_folder_height),
+            max(80, available - 100),
+        )
+        self._sidebar_splitter.setSizes([folder_height, available - folder_height])
 
     def _build_menus(self) -> None:
         mb = self.menuBar()
@@ -272,6 +307,7 @@ class MainWindow(QMainWindow):
         self._act_sidebar.setChecked(s.sidebar_visible)
         self._preview.setVisible(s.preview_visible)
         self._act_preview.setChecked(s.preview_visible)
+        self._update_preview()
 
     # ==================================================================
     # Sidebar handlers
@@ -288,7 +324,13 @@ class MainWindow(QMainWindow):
             item = QListWidgetItem("📁 " + folder)
             item.setData(Qt.ItemDataRole.UserRole, folder)
             self._folder_list.addItem(item)
-        self._folder_list.setCurrentRow(0)
+        selected_folder = self._current_folder or "__all__"
+        selected_row = 0
+        for row in range(self._folder_list.count()):
+            if self._folder_list.item(row).data(Qt.ItemDataRole.UserRole) == selected_folder:
+                selected_row = row
+                break
+        self._folder_list.setCurrentRow(selected_row)
         self._folder_list.blockSignals(False)
 
     def _refresh_note_list(self) -> None:
@@ -480,9 +522,9 @@ class MainWindow(QMainWindow):
             # Inject preview styling
             accent = self._settings_ctrl.settings.accent_color
             theme = self._settings_ctrl.settings.theme
-            fg = "#e4e4e7" if theme == "dark" else "#18181b"
-            bg = "#13151b" if theme == "dark" else "#f4f4f5"
-            code_bg = "#1c1e26" if theme == "dark" else "#e4e4e7"
+            fg = "#F5F5F7" if theme == "dark" else "#1D1D1F"
+            bg = "#1F1F21" if theme == "dark" else "#FAFAFC"
+            code_bg = "#2A2A2D" if theme == "dark" else "#EFEFF2"
             font = self._settings_ctrl.settings.font_family
             size = self._settings_ctrl.settings.font_size
             styled = f"""
@@ -543,4 +585,5 @@ class MainWindow(QMainWindow):
         # Save window geometry
         g = self.geometry()
         self._settings_ctrl.save_window_geometry(g.x(), g.y(), g.width(), g.height())
+        self._settings_ctrl.save_sidebar_folder_height(self._sidebar_splitter.sizes()[0])
         super().closeEvent(event)

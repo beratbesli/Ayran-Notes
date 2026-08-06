@@ -77,6 +77,7 @@ class AppSettings:
     window_height: int = 750
     window_x: int = 100
     window_y: int = 100
+    sidebar_folder_height: int = 170
 
     def to_dict(self) -> dict:
         """Serialize to a plain dictionary."""
@@ -92,6 +93,7 @@ class AppSettings:
             "window_height": self.window_height,
             "window_x": self.window_x,
             "window_y": self.window_y,
+            "sidebar_folder_height": self.sidebar_folder_height,
         }
 
     @classmethod
