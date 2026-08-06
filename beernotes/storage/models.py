@@ -100,14 +100,16 @@ class AppSettings:
     language: str = "en"              # "en" | "tr"
     sidebar_visible: bool = True
     preview_visible: bool = True
-    window_width: int = 1200
-    window_height: int = 750
+    window_width: int = 1000
+    window_height: int = 680
     window_x: int = 100
     window_y: int = 100
     sidebar_folder_height: int = 170
     toolbar_actions: list[str] = field(
         default_factory=lambda: ["bold", "italic", "checklist"]
     )
+    view_mode: str = "simple"
+    compact_window_migrated: bool = False
 
     def to_dict(self) -> dict:
         """Serialize to a plain dictionary."""
@@ -125,6 +127,8 @@ class AppSettings:
             "window_y": self.window_y,
             "sidebar_folder_height": self.sidebar_folder_height,
             "toolbar_actions": self.toolbar_actions,
+            "view_mode": self.view_mode,
+            "compact_window_migrated": self.compact_window_migrated,
         }
 
     @classmethod
@@ -136,4 +140,6 @@ class AppSettings:
                 setattr(s, key, data[key])
         if not isinstance(s.toolbar_actions, list):
             s.toolbar_actions = ["bold", "italic", "checklist"]
+        if s.view_mode not in {"simple", "detailed"}:
+            s.view_mode = "simple"
         return s

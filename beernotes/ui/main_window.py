@@ -8,8 +8,8 @@ from typing import Optional
 
 import markdown
 
-from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QAction, QKeySequence, QTextCursor
+from PyQt6.QtCore import QSize, Qt, QTimer
+from PyQt6.QtGui import QAction, QActionGroup, QKeySequence, QTextCursor
 from PyQt6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
@@ -17,6 +17,7 @@ from PyQt6.QtWidgets import (
     QLineEdit,
     QListWidget,
     QListWidgetItem,
+    QListView,
     QMainWindow,
     QMenu,
     QMessageBox,
@@ -24,6 +25,7 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QSplitter,
     QStatusBar,
+    QStackedWidget,
     QTextBrowser,
     QToolBar,
     QVBoxLayout,
@@ -57,10 +59,15 @@ class MainWindow(QMainWindow):
         self._current_note: Optional[Note] = None
         self._current_folder: Optional[str] = None
         self._dirty = False
+        self._simple_dirty = False
         self._save_timer = QTimer(self)
         self._save_timer.setSingleShot(True)
         self._save_timer.setInterval(600)  # auto-save 600ms after last keystroke
         self._save_timer.timeout.connect(self._auto_save)
+        self._simple_save_timer = QTimer(self)
+        self._simple_save_timer.setSingleShot(True)
+        self._simple_save_timer.setInterval(600)
+        self._simple_save_timer.timeout.connect(self._auto_save_simple)
 
         self._build_ui()
         self._build_menus()
@@ -78,9 +85,12 @@ class MainWindow(QMainWindow):
         self.setGeometry(s.window_x, s.window_y, s.window_width, s.window_height)
         self.setMinimumSize(700, 450)
 
-        central = QWidget()
-        self.setCentralWidget(central)
-        main_layout = QHBoxLayout(central)
+        self._view_stack = QStackedWidget()
+        self.setCentralWidget(self._view_stack)
+
+        self._detailed_view = QWidget()
+        self._view_stack.addWidget(self._detailed_view)
+        main_layout = QHBoxLayout(self._detailed_view)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
@@ -188,6 +198,8 @@ class MainWindow(QMainWindow):
 
         main_layout.addWidget(self._splitter, 1)
 
+        self._build_simple_ui()
+
         # ── Status bar ─────────────────────────────────────────────
         self._statusbar = QStatusBar()
         self.setStatusBar(self._statusbar)
@@ -195,6 +207,65 @@ class MainWindow(QMainWindow):
         self._char_label = QLabel()
         self._statusbar.addPermanentWidget(self._word_label)
         self._statusbar.addPermanentWidget(self._char_label)
+
+    def _build_simple_ui(self) -> None:
+        """Build the distraction-free cards home and plain editor."""
+        self._simple_view = QWidget()
+        self._simple_view.setObjectName("simpleView")
+        simple_layout = QVBoxLayout(self._simple_view)
+        simple_layout.setContentsMargins(24, 18, 24, 20)
+        simple_layout.setSpacing(16)
+
+        self._simple_stack = QStackedWidget()
+        simple_layout.addWidget(self._simple_stack)
+
+        self._simple_home = QWidget()
+        home_layout = QVBoxLayout(self._simple_home)
+        home_layout.setContentsMargins(0, 0, 0, 0)
+        home_layout.setSpacing(18)
+
+        search_row = QHBoxLayout()
+        search_row.addStretch(1)
+        self._simple_search = QLineEdit()
+        self._simple_search.setObjectName("simpleSearch")
+        self._simple_search.setClearButtonEnabled(True)
+        self._simple_search.setMaximumWidth(620)
+        search_row.addWidget(self._simple_search, 4)
+        self._simple_add = QPushButton("+")
+        self._simple_add.setObjectName("simpleAddButton")
+        self._simple_add.setFixedSize(42, 42)
+        search_row.addWidget(self._simple_add)
+        search_row.addStretch(1)
+        home_layout.addLayout(search_row)
+
+        self._simple_cards = QListWidget()
+        self._simple_cards.setObjectName("simpleCards")
+        self._simple_cards.setViewMode(QListView.ViewMode.IconMode)
+        self._simple_cards.setResizeMode(QListView.ResizeMode.Adjust)
+        self._simple_cards.setMovement(QListView.Movement.Static)
+        self._simple_cards.setWordWrap(True)
+        self._simple_cards.setSpacing(12)
+        self._simple_cards.setGridSize(QSize(230, 150))
+        home_layout.addWidget(self._simple_cards, 1)
+        self._simple_stack.addWidget(self._simple_home)
+
+        self._simple_editor = QWidget()
+        editor_layout = QVBoxLayout(self._simple_editor)
+        editor_layout.setContentsMargins(48, 18, 48, 30)
+        editor_layout.setSpacing(0)
+        self._simple_back = QPushButton("←")
+        self._simple_back.setObjectName("simpleBackButton")
+        self._simple_back.setFixedSize(38, 34)
+        editor_layout.addWidget(self._simple_back, 0, Qt.AlignmentFlag.AlignLeft)
+        self._simple_title = QLineEdit()
+        self._simple_title.setObjectName("simpleTitle")
+        editor_layout.addWidget(self._simple_title)
+        self._simple_content = QPlainTextEdit()
+        self._simple_content.setObjectName("simpleContent")
+        editor_layout.addWidget(self._simple_content, 1)
+        self._simple_stack.addWidget(self._simple_editor)
+
+        self._view_stack.addWidget(self._simple_view)
 
     def _restore_sidebar_splitter(self) -> None:
         """Restore the folder panel in pixels after Qt has completed layout."""
@@ -295,6 +366,25 @@ class MainWindow(QMainWindow):
         self._act_replace.triggered.connect(self._replace_text)
         self._edit_menu.addAction(self._act_replace)
 
+        # Mode
+        self._mode_menu = mb.addMenu("")
+        self._mode_group = QActionGroup(self)
+        self._mode_group.setExclusive(True)
+        self._act_simple_mode = QAction(self)
+        self._act_simple_mode.setCheckable(True)
+        self._act_simple_mode.triggered.connect(
+            lambda checked: checked and self._change_view_mode("simple")
+        )
+        self._mode_group.addAction(self._act_simple_mode)
+        self._mode_menu.addAction(self._act_simple_mode)
+        self._act_detailed_mode = QAction(self)
+        self._act_detailed_mode.setCheckable(True)
+        self._act_detailed_mode.triggered.connect(
+            lambda checked: checked and self._change_view_mode("detailed")
+        )
+        self._mode_group.addAction(self._act_detailed_mode)
+        self._mode_menu.addAction(self._act_detailed_mode)
+
         # View
         self._view_menu = mb.addMenu("")
         self._act_sidebar = QAction(self)
@@ -368,6 +458,14 @@ class MainWindow(QMainWindow):
         self._content_edit.textChanged.connect(self._update_preview)
         self._content_edit.textChanged.connect(self._update_status)
 
+        # Simple mode
+        self._simple_search.textChanged.connect(lambda _: self._refresh_simple_cards())
+        self._simple_add.clicked.connect(self._on_simple_new_note)
+        self._simple_cards.itemClicked.connect(self._on_simple_card_clicked)
+        self._simple_back.clicked.connect(self._show_simple_home)
+        self._simple_title.textChanged.connect(self._schedule_simple_save)
+        self._simple_content.textChanged.connect(self._schedule_simple_save)
+
     # ==================================================================
     # Translation
     # ==================================================================
@@ -383,6 +481,11 @@ class MainWindow(QMainWindow):
         self._title_edit.setPlaceholderText(t("note_title_placeholder"))
         self._tag_edit.setPlaceholderText(t("tags_placeholder"))
         self._content_edit.setPlaceholderText(t("note_content_placeholder"))
+        self._simple_search.setPlaceholderText(t("simple_search_placeholder"))
+        self._simple_title.setPlaceholderText(t("note_title_placeholder"))
+        self._simple_content.setPlaceholderText(t("simple_content_placeholder"))
+        self._simple_add.setToolTip(t("new_note"))
+        self._simple_back.setToolTip(t("back_to_notes"))
 
         # Menus
         self._file_menu.setTitle(t("file"))
@@ -398,6 +501,9 @@ class MainWindow(QMainWindow):
         self._act_redo.setText(t("redo"))
         self._act_find.setText(t("find"))
         self._act_replace.setText(t("replace"))
+        self._mode_menu.setTitle(t("mode"))
+        self._act_simple_mode.setText(t("simple_mode"))
+        self._act_detailed_mode.setText(t("detailed_mode"))
         self._view_menu.setTitle(t("view"))
         self._act_sidebar.setText(t("toggle_sidebar"))
         self._act_preview.setText(t("toggle_preview"))
@@ -427,6 +533,7 @@ class MainWindow(QMainWindow):
         self._preview.setVisible(s.preview_visible)
         self._act_preview.setChecked(s.preview_visible)
         self._sync_toolbar_visibility(s.toolbar_actions)
+        self._show_view_mode(s.view_mode)
         self._update_preview()
 
     def _set_toolbar_action_visible(self, key: str, visible: bool) -> None:
@@ -456,6 +563,120 @@ class MainWindow(QMainWindow):
     def _reset_toolbar(self) -> None:
         defaults = ["bold", "italic", "checklist"]
         self._settings_ctrl.set_toolbar_actions(defaults)
+
+    # ==================================================================
+    # Simple / detailed mode
+    # ==================================================================
+
+    def _change_view_mode(self, mode: str) -> None:
+        self._flush_all_edits()
+        if mode == "simple":
+            self._show_simple_home()
+        self._settings_ctrl.set_view_mode(mode)
+
+    def _show_view_mode(self, mode: str) -> None:
+        simple = mode == "simple"
+        previous = self._view_stack.currentWidget()
+        self._act_simple_mode.setChecked(simple)
+        self._act_detailed_mode.setChecked(not simple)
+        self._view_stack.setCurrentWidget(
+            self._simple_view if simple else self._detailed_view
+        )
+        if simple:
+            self._refresh_simple_cards()
+        elif previous is not self._detailed_view and self._current_note:
+            self._load_note(self._current_note.id)
+
+    def _refresh_simple_cards(self) -> None:
+        query = self._simple_search.text().strip()
+        notes = (
+            self._note_ctrl.search(query, "__all__")
+            if query else self._note_ctrl.list_notes("__all__")
+        )
+        self._simple_cards.clear()
+        for note in notes:
+            plain = re.sub(r"[#*_`>\[\]()-]+", " ", note.content)
+            snippet = " ".join(plain.split())[:150]
+            prefix = "★ " if note.is_favorite else ""
+            item = QListWidgetItem(
+                f"{prefix}{note.title or self._i18n.t('untitled')}\n\n{snippet}"
+            )
+            item.setData(Qt.ItemDataRole.UserRole, note.id)
+            item.setSizeHint(QSize(215, 130))
+            item.setTextAlignment(
+                Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop
+            )
+            self._simple_cards.addItem(item)
+
+    def _on_simple_card_clicked(self, item: QListWidgetItem) -> None:
+        note_id = item.data(Qt.ItemDataRole.UserRole)
+        if note_id:
+            self._load_simple_note(note_id)
+
+    def _load_simple_note(self, note_id: str) -> None:
+        if self._current_note and self._current_note.id != note_id:
+            self._flush_all_edits()
+        note = self._note_ctrl.get_note(note_id)
+        if not note:
+            return
+        self._current_note = note
+        self._simple_title.blockSignals(True)
+        self._simple_content.blockSignals(True)
+        self._simple_title.setText(note.title)
+        self._simple_content.setPlainText(note.content)
+        self._simple_title.blockSignals(False)
+        self._simple_content.blockSignals(False)
+        self._simple_dirty = False
+        self._simple_stack.setCurrentWidget(self._simple_editor)
+        self._simple_content.setFocus()
+        self._update_status()
+
+    def _on_simple_new_note(self) -> None:
+        self._flush_all_edits()
+        note = self._note_ctrl.create_note(
+            self._i18n.t("untitled"),
+            "General",
+        )
+        self._current_note = note
+        self._refresh_simple_cards()
+        self._load_simple_note(note.id)
+        self._simple_title.setFocus()
+        self._simple_title.selectAll()
+
+    def _show_simple_home(self) -> None:
+        self._flush_simple_save()
+        self._current_note = None
+        self._simple_stack.setCurrentWidget(self._simple_home)
+        self._refresh_simple_cards()
+        self._update_status()
+
+    def _schedule_simple_save(self) -> None:
+        if self._current_note:
+            self._simple_dirty = True
+            self._simple_save_timer.start()
+            self._update_status()
+
+    def _flush_simple_save(self) -> None:
+        if self._simple_save_timer.isActive():
+            self._simple_save_timer.stop()
+        if self._simple_dirty:
+            self._auto_save_simple()
+
+    def _auto_save_simple(self) -> None:
+        if not self._current_note or not self._simple_dirty:
+            return
+        self._current_note.title = self._simple_title.text()
+        self._current_note.content = self._simple_content.toPlainText()
+        try:
+            self._note_ctrl.save_note(self._current_note)
+        except (OSError, ValueError) as error:
+            self._statusbar.showMessage(f"Save failed: {error}", 5000)
+            return
+        self._simple_dirty = False
+
+    def _flush_all_edits(self) -> None:
+        self._flush_pending_save()
+        self._flush_simple_save()
 
     # ==================================================================
     # Sidebar handlers
@@ -544,7 +765,7 @@ class MainWindow(QMainWindow):
 
     def _load_note(self, note_id: str) -> None:
         if self._current_note and self._current_note.id != note_id:
-            self._flush_pending_save()
+            self._flush_all_edits()
         note = self._note_ctrl.get_note(note_id)
         if not note:
             return
@@ -563,7 +784,10 @@ class MainWindow(QMainWindow):
         self._update_status()
 
     def _on_new_note(self) -> None:
-        self._flush_pending_save()
+        if self._view_stack.currentWidget() is self._simple_view:
+            self._on_simple_new_note()
+            return
+        self._flush_all_edits()
         folder = self._current_folder if self._current_folder and self._current_folder != "__all__" else "General"
         if folder.startswith("__"):
             folder = "General"
@@ -651,13 +875,13 @@ class MainWindow(QMainWindow):
         self._refresh_note_list()
 
     def _set_archived(self, note_id: str, archived: bool) -> None:
-        self._flush_pending_save()
+        self._flush_all_edits()
         self._note_ctrl.set_archived(note_id, archived)
         self._clear_current_note(note_id)
         self._refresh_note_list()
 
     def _trash_note(self, note_id: str) -> None:
-        self._flush_pending_save()
+        self._flush_all_edits()
         self._note_ctrl.move_to_trash(note_id)
         self._clear_current_note(note_id)
         self._refresh_note_list()
@@ -671,12 +895,20 @@ class MainWindow(QMainWindow):
         if not self._current_note or self._current_note.id != note_id:
             return
         self._save_timer.stop()
+        self._simple_save_timer.stop()
         self._dirty = False
+        self._simple_dirty = False
         self._current_note = None
         for editor in (self._title_edit, self._tag_edit, self._content_edit):
             editor.blockSignals(True)
             editor.clear()
             editor.blockSignals(False)
+        for editor in (self._simple_title, self._simple_content):
+            editor.blockSignals(True)
+            editor.clear()
+            editor.blockSignals(False)
+        self._simple_stack.setCurrentWidget(self._simple_home)
+        self._refresh_simple_cards()
         self._preview.clear()
         self._update_status()
 
@@ -778,7 +1010,7 @@ class MainWindow(QMainWindow):
         )
         if not source:
             return
-        self._flush_pending_save()
+        self._flush_all_edits()
         try:
             destination = self._note_ctrl.add_attachment(
                 self._current_note.id,
@@ -797,14 +1029,22 @@ class MainWindow(QMainWindow):
             f"![{label}]({destination.as_uri()})"
             if image else f"[{label}]({destination.as_uri()})"
         )
-        self._content_edit.textCursor().insertText(markdown_link)
+        target = (
+            self._simple_content
+            if (
+                self._view_stack.currentWidget() is self._simple_view
+                and self._simple_stack.currentWidget() is self._simple_editor
+            )
+            else self._content_edit
+        )
+        target.textCursor().insertText(markdown_link)
 
     def _export_current_note(self) -> None:
         """Export the active note to a user-selected portable format."""
         if not self._current_note:
             self._statusbar.showMessage(self._i18n.t("select_note_to_export"), 3000)
             return
-        self._flush_pending_save()
+        self._flush_all_edits()
         safe_title = re.sub(r"[^\w .-]+", "_", self._current_note.title).strip(" .")
         safe_title = safe_title or "note"
         t = self._i18n.t
@@ -864,7 +1104,7 @@ class MainWindow(QMainWindow):
         )
         if not filenames:
             return
-        self._flush_pending_save()
+        self._flush_all_edits()
         current_folder = self._current_folder or "General"
         if current_folder.startswith("__"):
             current_folder = "General"
@@ -893,7 +1133,11 @@ class MainWindow(QMainWindow):
                 else "__all__"
             )
             self._refresh_note_list()
-            self._load_note(last_note.id)
+            if self._view_stack.currentWidget() is self._simple_view:
+                self._refresh_simple_cards()
+                self._load_simple_note(last_note.id)
+            else:
+                self._load_note(last_note.id)
             self._statusbar.showMessage(
                 t("import_success", count=len(imported_notes)),
                 5000,
@@ -991,7 +1235,14 @@ class MainWindow(QMainWindow):
             self._preview.setPlainText(text)
 
     def _update_status(self) -> None:
-        text = self._content_edit.toPlainText()
+        simple_mode = self._view_stack.currentWidget() is self._simple_view
+        if simple_mode:
+            text = (
+                self._simple_content.toPlainText()
+                if self._simple_stack.currentWidget() is self._simple_editor else ""
+            )
+        else:
+            text = self._content_edit.toPlainText()
         words = len(text.split()) if text.strip() else 0
         chars = len(text)
         self._word_label.setText(self._i18n.t("word_count", count=words))
@@ -1024,9 +1275,13 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event) -> None:
         # Save any pending edits
-        self._flush_pending_save()
+        self._flush_all_edits()
         # Save window geometry
-        g = self.geometry()
+        g = (
+            self.normalGeometry()
+            if self.isMaximized() or self.isFullScreen()
+            else self.geometry()
+        )
         self._settings_ctrl.save_window_geometry(g.x(), g.y(), g.width(), g.height())
         self._settings_ctrl.save_sidebar_folder_height(self._sidebar_splitter.sizes()[0])
         super().closeEvent(event)

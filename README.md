@@ -35,6 +35,7 @@
 | 📤 **Export** | Save the current note as Markdown, TXT, HTML, or PDF |
 | 📥 **Import** | Import multiple Markdown, TXT, HTML, or Beer Notes JSON files |
 | 🧩 **Custom Toolbar** | Keep the editor minimal and choose visible tools from Extras |
+| 🗃️ **Simple Mode** | Searchable note cards and a distraction-free writing screen |
 | ⌨️ **Keyboard Shortcuts** | `Ctrl+N`, `Ctrl+Delete`, `Ctrl+B`, `Ctrl+P`, `Ctrl+Q` |
 | 🗂️ **XDG Compliant Storage** | Data stored in `~/.local/share/beernotes/` |
 | 🖥️ **Desktop Integration** | Includes `.desktop` file for Linux app launchers |
@@ -135,6 +136,11 @@ Beer-Notes/
 Editor buttons are intentionally minimal by default. Open
 `Extras → Customize Toolbar` to add or remove formatting, code, link, and
 attachment buttons. The selection is saved automatically.
+
+Beer Notes starts in **Simple Mode** with searchable note cards. Select a card
+to open the distraction-free editor, or use the centered `+` button to create
+a note. Switch between **Simple Mode** and **Detailed Mode** from the
+`Mode` menu; the choice is remembered.
 
 ---
 

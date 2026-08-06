@@ -117,6 +117,35 @@ class MainWindowTests(unittest.TestCase):
         self.assertFalse(imported["Second"].is_markdown)
         self.assertEqual(self.window._current_note.title, "Second")
 
+    def test_simple_mode_cards_search_and_safe_mode_switch(self) -> None:
+        first = self.notes.create_note("Shopping", "General")
+        second = self.notes.create_note("Work plan", "Work")
+        self.window._refresh_simple_cards()
+
+        self.assertIs(self.window._view_stack.currentWidget(), self.window._simple_view)
+        self.assertEqual(self.window._simple_cards.count(), 2)
+        self.window._simple_search.setText("work")
+        self.assertEqual(self.window._simple_cards.count(), 1)
+        self.assertIn("Work plan", self.window._simple_cards.item(0).text())
+
+        self.window._load_simple_note(second.id)
+        self.window._simple_content.setPlainText("edited in simple mode")
+        self.window._change_view_mode("detailed")
+
+        self.assertEqual(self.storage.get_note(second.id).content, "edited in simple mode")
+        self.assertEqual(self.window._content_edit.toPlainText(), "edited in simple mode")
+        self.assertIs(self.window._view_stack.currentWidget(), self.window._detailed_view)
+        self.assertEqual(self.storage.load_settings().view_mode, "detailed")
+
+    def test_simple_plus_creates_and_opens_a_note(self) -> None:
+        self.window._on_simple_new_note()
+        self.assertIsNotNone(self.window._current_note)
+        self.assertIs(
+            self.window._simple_stack.currentWidget(),
+            self.window._simple_editor,
+        )
+        self.assertEqual(len(self.notes.list_notes("__all__")), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

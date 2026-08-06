@@ -199,6 +199,95 @@ QListWidget::item:disabled {{
     color: {p["tertiary"]};
 }}
 
+/* Simple mode */
+#simpleView {{
+    background-color: {p["window"]};
+}}
+#simpleSearch {{
+    min-height: 24px;
+    background-color: {p["raised"]};
+    color: {p["text"]};
+    border: 1px solid {p["border"]};
+    border-radius: 12px;
+    padding: 8px 14px;
+    font-size: {size}px;
+    selection-background-color: {accent_selection};
+}}
+#simpleSearch:focus {{
+    border-color: {accent};
+}}
+QPushButton#simpleAddButton {{
+    min-width: 42px;
+    min-height: 42px;
+    max-width: 42px;
+    max-height: 42px;
+    background-color: {accent};
+    color: {p["accent_text"]};
+    border: none;
+    border-radius: 12px;
+    padding: 0;
+    font-size: {size + 8}px;
+    font-weight: 400;
+}}
+QPushButton#simpleAddButton:hover {{
+    background-color: {p["accent_hover"]};
+}}
+#simpleCards {{
+    background-color: transparent;
+    border: none;
+    outline: none;
+}}
+#simpleCards::item {{
+    background-color: {p["raised"]};
+    color: {p["text"]};
+    border: 1px solid {p["border"]};
+    border-radius: 12px;
+    padding: 14px;
+    margin: 4px;
+}}
+#simpleCards::item:hover {{
+    background-color: {p["hover"]};
+    border-color: {p["tertiary"]};
+}}
+#simpleCards::item:selected {{
+    background-color: {accent_soft};
+    color: {p["text"]};
+    border: 1px solid {accent};
+}}
+QPushButton#simpleBackButton {{
+    min-width: 38px;
+    min-height: 34px;
+    background-color: transparent;
+    color: {p["secondary"]};
+    border: none;
+    border-radius: 8px;
+    padding: 0;
+    font-size: {size + 6}px;
+}}
+QPushButton#simpleBackButton:hover {{
+    background-color: {p["hover"]};
+    color: {p["text"]};
+}}
+#simpleTitle {{
+    background-color: transparent;
+    color: {p["text"]};
+    border: none;
+    border-bottom: 1px solid {p["separator"]};
+    border-radius: 0;
+    padding: 14px 2px 12px 2px;
+    font-size: {size + 8}px;
+    font-weight: 600;
+    selection-background-color: {accent_selection};
+}}
+#simpleContent {{
+    background-color: transparent;
+    color: {p["text"]};
+    border: none;
+    padding: 18px 2px;
+    font-size: {size + 1}px;
+    selection-background-color: {accent_selection};
+}}
+
 /* Buttons */
 QPushButton {{
     min-height: 18px;

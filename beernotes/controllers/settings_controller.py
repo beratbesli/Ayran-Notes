@@ -23,6 +23,11 @@ class SettingsController(QObject):
         super().__init__(parent)
         self._storage = storage
         self._settings: AppSettings = self._storage.load_settings()
+        if not self._settings.compact_window_migrated:
+            self._settings.window_width = min(self._settings.window_width, 1000)
+            self._settings.window_height = min(self._settings.window_height, 680)
+            self._settings.compact_window_migrated = True
+            self._storage.save_settings(self._settings)
 
     # ------------------------------------------------------------------
     # Properties
@@ -73,6 +78,13 @@ class SettingsController(QObject):
     def set_toolbar_actions(self, actions: list[str]) -> None:
         """Persist the ordered set of tools shown above the editor."""
         self._settings.toolbar_actions = list(dict.fromkeys(actions))
+        self._apply()
+
+    def set_view_mode(self, mode: str) -> None:
+        """Switch between the simple cards view and the detailed workspace."""
+        if mode not in {"simple", "detailed"}:
+            return
+        self._settings.view_mode = mode
         self._apply()
 
     def save_window_geometry(self, x: int, y: int, w: int, h: int) -> None:

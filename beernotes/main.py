@@ -22,7 +22,7 @@ def main() -> None:
     """Launch the Beer Notes application."""
     app = QApplication(sys.argv)
     app.setApplicationName("Beer Notes")
-    app.setApplicationVersion("1.1.0")
+    app.setApplicationVersion("1.2.0")
     app.setWindowIcon(
         QIcon(str(files("beernotes").joinpath("assets", "beernotes.png")))
     )

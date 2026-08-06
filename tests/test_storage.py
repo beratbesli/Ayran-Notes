@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 from beernotes.storage.database import StorageEngine
 from beernotes.storage.models import Note
+from beernotes.controllers.settings_controller import SettingsController
 
 
 class StorageEngineTests(unittest.TestCase):
@@ -78,6 +79,18 @@ class StorageEngineTests(unittest.TestCase):
         self.assertEqual(stored.read_bytes(), b"png-data")
         self.assertTrue(self.storage.delete_note(note.id))
         self.assertFalse(stored.exists())
+
+    def test_existing_large_window_is_migrated_once_to_compact_size(self) -> None:
+        settings = self.storage.load_settings()
+        settings.window_width = 1600
+        settings.window_height = 1000
+        settings.compact_window_migrated = False
+        self.storage.save_settings(settings)
+
+        controller = SettingsController(self.storage)
+        self.assertEqual(controller.settings.window_width, 1000)
+        self.assertEqual(controller.settings.window_height, 680)
+        self.assertTrue(controller.settings.compact_window_migrated)
 
 
 if __name__ == "__main__":
