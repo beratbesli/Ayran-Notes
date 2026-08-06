@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Beer Notes
+GenericName=Note-Taking App
+Comment=A lightweight, customizable note-taking application for Linux
+Exec=python3 /opt/beernotes/run.py
+Icon=beernotes
+Terminal=false
+Categories=Office;TextEditor;Utility;
+Keywords=notes;markdown;editor;text;
+StartupWMClass=beernotes
+StartupNotify=true
