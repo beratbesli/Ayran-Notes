@@ -97,8 +97,6 @@ Beer-Notes/
 │       ├── main_window.py      # Main application window
 │       ├── settings_dialog.py  # Preferences dialog
 │       └── themes.py           # Dark/Light theme QSS engine
-├── assets/
-│   └── icons/                  # Application icons
 ├── run.py                      # Convenience launcher
 ├── beernotes.desktop           # XDG desktop entry
 ├── requirements.txt            # Python dependencies
