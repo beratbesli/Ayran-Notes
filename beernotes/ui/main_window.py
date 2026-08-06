@@ -50,6 +50,7 @@ class MainWindow(QMainWindow):
         self._i18n = i18n
         self._current_note: Optional[Note] = None
         self._current_folder: Optional[str] = None
+        self._dirty = False
         self._save_timer = QTimer(self)
         self._save_timer.setSingleShot(True)
         self._save_timer.setInterval(600)  # auto-save 600ms after last keystroke
@@ -382,6 +383,8 @@ class MainWindow(QMainWindow):
     # ==================================================================
 
     def _load_note(self, note_id: str) -> None:
+        if self._current_note and self._current_note.id != note_id:
+            self._flush_pending_save()
         note = self._note_ctrl.get_note(note_id)
         if not note:
             return
@@ -392,10 +395,12 @@ class MainWindow(QMainWindow):
         self._content_edit.setPlainText(note.content)
         self._title_edit.blockSignals(False)
         self._content_edit.blockSignals(False)
+        self._dirty = False
         self._update_preview()
         self._update_status()
 
     def _on_new_note(self) -> None:
+        self._flush_pending_save()
         folder = self._current_folder if self._current_folder and self._current_folder != "__all__" else "General"
         note = self._note_ctrl.create_note(
             title=self._i18n.t("untitled"),
@@ -417,6 +422,8 @@ class MainWindow(QMainWindow):
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
         if reply == QMessageBox.StandardButton.Yes:
+            self._save_timer.stop()
+            self._dirty = False
             self._note_ctrl.delete_note(self._current_note.id)
             self._current_note = None
             self._title_edit.clear()
@@ -484,6 +491,9 @@ class MainWindow(QMainWindow):
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
         if reply == QMessageBox.StandardButton.Yes:
+            if self._current_note and self._current_note.id == note_id:
+                self._save_timer.stop()
+                self._dirty = False
             self._note_ctrl.delete_note(note_id)
             if self._current_note and self._current_note.id == note_id:
                 self._current_note = None
@@ -497,14 +507,28 @@ class MainWindow(QMainWindow):
     # ==================================================================
 
     def _schedule_save(self) -> None:
-        self._save_timer.start()
+        if self._current_note:
+            self._dirty = True
+            self._save_timer.start()
+
+    def _flush_pending_save(self) -> None:
+        """Synchronously save the active note before changing editor context."""
+        if self._save_timer.isActive():
+            self._save_timer.stop()
+        if self._dirty:
+            self._auto_save()
 
     def _auto_save(self) -> None:
-        if not self._current_note:
+        if not self._current_note or not self._dirty:
             return
         self._current_note.title = self._title_edit.text()
         self._current_note.content = self._content_edit.toPlainText()
-        self._note_ctrl.save_note(self._current_note)
+        try:
+            self._note_ctrl.save_note(self._current_note)
+        except (OSError, ValueError) as error:
+            self._statusbar.showMessage(f"Save failed: {error}", 5000)
+            return
+        self._dirty = False
         # Refresh list to show updated title
         self._refresh_note_list()
 
@@ -581,7 +605,7 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event) -> None:
         # Save any pending edits
-        self._auto_save()
+        self._flush_pending_save()
         # Save window geometry
         g = self.geometry()
         self._settings_ctrl.save_window_geometry(g.x(), g.y(), g.width(), g.height())
