@@ -54,6 +54,20 @@ class MainWindowTests(unittest.TestCase):
         self.assertTrue(self.storage.get_note(note.id).is_trashed)
         self.assertIsNone(self.window._current_note)
 
+    def test_markdown_tools_support_undo(self) -> None:
+        note = self.notes.create_note("Formatting")
+        self.window._load_note(note.id)
+        self.window._content_edit.setPlainText("hello")
+        self.window._content_edit.selectAll()
+
+        self.window._wrap_selection("**", "**", "bold")
+        self.assertEqual(self.window._content_edit.toPlainText(), "**hello**")
+        self.window._content_edit.undo()
+        self.assertEqual(self.window._content_edit.toPlainText(), "hello")
+
+        self.window._prefix_line("- [ ] ")
+        self.assertEqual(self.window._content_edit.toPlainText(), "- [ ] hello")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -15,7 +15,9 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import tempfile
+import uuid
 from pathlib import Path
 from typing import List, Optional
 
@@ -57,6 +59,7 @@ class StorageEngine:
         self.base_dir = base_dir or _data_dir()
         self.notes_dir = self.base_dir / "notes"
         self.settings_file = self.base_dir / "settings.json"
+        self.attachments_dir = self.base_dir / "attachments"
         self._ensure_dirs()
 
     # ------------------------------------------------------------------
@@ -67,6 +70,7 @@ class StorageEngine:
         """Create the data directories if they don't exist."""
         self.base_dir.mkdir(parents=True, exist_ok=True)
         self.notes_dir.mkdir(parents=True, exist_ok=True)
+        self.attachments_dir.mkdir(parents=True, exist_ok=True)
 
     # ------------------------------------------------------------------
     # Settings
@@ -153,8 +157,24 @@ class StorageEngine:
             return False
         if path.exists():
             path.unlink()
+            shutil.rmtree(self.attachments_dir / note_id, ignore_errors=True)
             return True
         return False
+
+    def add_attachment(self, note_id: str, source: Path) -> Path:
+        """Copy a file into this note's managed attachment directory."""
+        self._note_path(note_id)  # validates the ID
+        source = Path(source)
+        if not source.is_file():
+            raise FileNotFoundError(source)
+        note_attachments = self.attachments_dir / note_id
+        note_attachments.mkdir(parents=True, exist_ok=True)
+        safe_name = Path(source.name).name
+        destination = note_attachments / safe_name
+        if destination.exists():
+            destination = note_attachments / f"{uuid.uuid4().hex[:8]}-{safe_name}"
+        shutil.copy2(source, destination)
+        return destination
 
     def get_folders(self) -> List[str]:
         """Return a sorted list of unique folder names across all notes."""

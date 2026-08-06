@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta:__legacy__"
 
 [project]
 name = "beernotes"
-version = "1.0.0"
+version = "1.1.0"
 description = "A lightweight, customizable Linux desktop note-taking application"
 authors = [{name = "Berat Besli"}]
 readme = "README.md"

@@ -42,6 +42,18 @@ class NoteControllerTests(unittest.TestCase):
         self.controller.restore_note(note.id)
         self.assertEqual([item.id for item in self.controller.list_notes("__archive__")], [note.id])
 
+    def test_attachment_is_tracked_on_note(self) -> None:
+        note = self.controller.create_note("Files")
+        source = Path(self.temporary.name) / "report.txt"
+        source.write_text("content", encoding="utf-8")
+
+        destination = self.controller.add_attachment(note.id, source)
+
+        self.assertTrue(destination.is_file())
+        loaded = self.controller.get_note(note.id)
+        self.assertEqual(len(loaded.attachments), 1)
+        self.assertTrue(loaded.attachments[0].endswith("/report.txt"))
+
 
 if __name__ == "__main__":
     unittest.main()

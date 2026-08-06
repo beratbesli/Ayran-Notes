@@ -260,6 +260,30 @@ QPushButton#accentBtn:pressed {{
     font-size: {max(8, size - 1)}px;
     selection-background-color: {accent_selection};
 }}
+QToolBar#editorToolbar {{
+    background-color: transparent;
+    border: none;
+    border-bottom: 1px solid {p["separator"]};
+    spacing: 3px;
+    padding: 5px 0;
+}}
+QToolBar#editorToolbar QToolButton {{
+    min-width: 26px;
+    min-height: 24px;
+    background-color: transparent;
+    color: {p["secondary"]};
+    border: none;
+    border-radius: 6px;
+    padding: 3px 7px;
+}}
+QToolBar#editorToolbar QToolButton:hover {{
+    background-color: {p["hover"]};
+    color: {p["text"]};
+}}
+QToolBar#editorToolbar QToolButton:pressed {{
+    background-color: {accent_soft};
+    color: {accent};
+}}
 #previewPanel {{
     background-color: {p["preview"]};
     color: {p["text"]};

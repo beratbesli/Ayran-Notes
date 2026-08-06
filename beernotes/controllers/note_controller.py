@@ -6,6 +6,7 @@ lifecycle operations and search/filter logic.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import List, Optional
 
 from PyQt6.QtCore import QObject, pyqtSignal
@@ -159,3 +160,15 @@ class NoteController(QObject):
             self.notes_changed.emit()
             return note
         return None
+
+    def add_attachment(self, note_id: str, source: Path) -> Optional[Path]:
+        """Copy an attachment into managed storage and associate it with a note."""
+        note = self._storage.get_note(note_id)
+        if not note:
+            return None
+        destination = self._storage.add_attachment(note_id, source)
+        relative_path = destination.relative_to(self._storage.base_dir).as_posix()
+        note.attachments.append(relative_path)
+        self._storage.save_note(note)
+        self.notes_changed.emit()
+        return destination

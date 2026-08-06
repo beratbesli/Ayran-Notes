@@ -54,7 +54,7 @@ class StorageEngineTests(unittest.TestCase):
     def test_legacy_note_gets_new_organization_defaults(self) -> None:
         note = Note(title="Legacy")
         data = note.to_dict()
-        for key in ("tags", "is_favorite", "is_archived", "is_trashed"):
+        for key in ("tags", "attachments", "is_favorite", "is_archived", "is_trashed"):
             data.pop(key)
         (self.storage.notes_dir / f"{note.id}.json").write_text(
             json.dumps(data),
@@ -66,6 +66,18 @@ class StorageEngineTests(unittest.TestCase):
         self.assertFalse(loaded.is_favorite)
         self.assertFalse(loaded.is_archived)
         self.assertFalse(loaded.is_trashed)
+        self.assertEqual(loaded.attachments, [])
+
+    def test_attachment_is_copied_and_removed_with_note(self) -> None:
+        note = Note(title="Attachment")
+        self.storage.save_note(note)
+        source = self.base_dir / "sample image.png"
+        source.write_bytes(b"png-data")
+
+        stored = self.storage.add_attachment(note.id, source)
+        self.assertEqual(stored.read_bytes(), b"png-data")
+        self.assertTrue(self.storage.delete_note(note.id))
+        self.assertFalse(stored.exists())
 
 
 if __name__ == "__main__":

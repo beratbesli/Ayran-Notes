@@ -31,6 +31,7 @@ class Note:
     is_archived: bool = False
     is_trashed: bool = False
     tags: list[str] = field(default_factory=list)
+    attachments: list[str] = field(default_factory=list)
     created_at: str = field(default_factory=_utcnow)
     updated_at: str = field(default_factory=_utcnow)
 
@@ -51,6 +52,7 @@ class Note:
             "is_archived": self.is_archived,
             "is_trashed": self.is_trashed,
             "tags": self.tags,
+            "attachments": self.attachments,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
         }
@@ -65,6 +67,11 @@ class Note:
                 tag.strip() for tag in raw_tags
                 if isinstance(tag, str) and tag.strip()
             ))
+        raw_attachments = data.get("attachments", [])
+        attachments = [
+            item for item in raw_attachments
+            if isinstance(item, str) and item.strip()
+        ] if isinstance(raw_attachments, list) else []
         return cls(
             id=data.get("id", _new_id()),
             title=data.get("title", "Untitled"),
@@ -76,6 +83,7 @@ class Note:
             is_archived=data.get("is_archived", False),
             is_trashed=data.get("is_trashed", False),
             tags=tags,
+            attachments=attachments,
             created_at=data.get("created_at", _utcnow()),
             updated_at=data.get("updated_at", _utcnow()),
         )

@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import re
+from pathlib import Path
 from typing import Optional
 
 import markdown
 
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QAction, QKeySequence
+from PyQt6.QtGui import QAction, QKeySequence, QTextCursor
 from PyQt6.QtWidgets import (
+    QFileDialog,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -22,6 +25,7 @@ from PyQt6.QtWidgets import (
     QSplitter,
     QStatusBar,
     QTextBrowser,
+    QToolBar,
     QVBoxLayout,
     QWidget,
     QInputDialog,
@@ -161,6 +165,12 @@ class MainWindow(QMainWindow):
         self._content_edit = QPlainTextEdit()
         self._content_edit.setObjectName("contentEdit")
         self._content_edit.setTabStopDistance(32.0)
+
+        self._editor_toolbar = QToolBar()
+        self._editor_toolbar.setObjectName("editorToolbar")
+        self._editor_toolbar.setMovable(False)
+        self._build_editor_toolbar()
+        editor_layout.addWidget(self._editor_toolbar)
         editor_layout.addWidget(self._content_edit, 1)
 
         self._splitter.addWidget(editor_pane)
@@ -196,6 +206,30 @@ class MainWindow(QMainWindow):
         )
         self._sidebar_splitter.setSizes([folder_height, available - folder_height])
 
+    def _build_editor_toolbar(self) -> None:
+        """Create compact Markdown and attachment actions."""
+        self._format_actions = {}
+        actions = (
+            ("bold", "B", lambda: self._wrap_selection("**", "**", "bold"), "Ctrl+B"),
+            ("italic", "I", lambda: self._wrap_selection("_", "_", "italic"), "Ctrl+I"),
+            ("heading", "H", lambda: self._prefix_line("## "), None),
+            ("checklist", "☑", lambda: self._prefix_line("- [ ] "), None),
+            ("inline_code", "</>", lambda: self._wrap_selection("`", "`", "code"), None),
+            ("code_block", "{ }", lambda: self._wrap_selection("\n```\n", "\n```\n", "code"), None),
+            ("link", "↗", lambda: self._wrap_selection("[", "](https://)", "link text"), None),
+        )
+        for key, label, callback, shortcut in actions:
+            action = self._editor_toolbar.addAction(label)
+            action.triggered.connect(callback)
+            if shortcut:
+                action.setShortcut(QKeySequence(shortcut))
+            self._format_actions[key] = action
+        self._editor_toolbar.addSeparator()
+        self._act_attach_file = self._editor_toolbar.addAction("＋")
+        self._act_attach_file.triggered.connect(lambda: self._attach_file(False))
+        self._act_attach_image = self._editor_toolbar.addAction("▧")
+        self._act_attach_image.triggered.connect(lambda: self._attach_file(True))
+
     def _build_menus(self) -> None:
         mb = self.menuBar()
 
@@ -210,6 +244,9 @@ class MainWindow(QMainWindow):
         self._act_delete.setShortcut(QKeySequence("Ctrl+Delete"))
         self._act_delete.triggered.connect(self._on_delete_note)
         self._file_menu.addAction(self._act_delete)
+        self._file_menu.addSeparator()
+        self._file_menu.addAction(self._act_attach_file)
+        self._file_menu.addAction(self._act_attach_image)
 
         self._file_menu.addSeparator()
 
@@ -218,10 +255,30 @@ class MainWindow(QMainWindow):
         self._act_quit.triggered.connect(self.close)
         self._file_menu.addAction(self._act_quit)
 
+        # Edit
+        self._edit_menu = mb.addMenu("")
+        self._act_undo = QAction(self)
+        self._act_undo.setShortcut(QKeySequence.StandardKey.Undo)
+        self._act_undo.triggered.connect(self._content_edit.undo)
+        self._edit_menu.addAction(self._act_undo)
+        self._act_redo = QAction(self)
+        self._act_redo.setShortcut(QKeySequence.StandardKey.Redo)
+        self._act_redo.triggered.connect(self._content_edit.redo)
+        self._edit_menu.addAction(self._act_redo)
+        self._edit_menu.addSeparator()
+        self._act_find = QAction(self)
+        self._act_find.setShortcut(QKeySequence.StandardKey.Find)
+        self._act_find.triggered.connect(self._find_text)
+        self._edit_menu.addAction(self._act_find)
+        self._act_replace = QAction(self)
+        self._act_replace.setShortcut(QKeySequence("Ctrl+H"))
+        self._act_replace.triggered.connect(self._replace_text)
+        self._edit_menu.addAction(self._act_replace)
+
         # View
         self._view_menu = mb.addMenu("")
         self._act_sidebar = QAction(self)
-        self._act_sidebar.setShortcut(QKeySequence("Ctrl+B"))
+        self._act_sidebar.setShortcut(QKeySequence("Ctrl+Shift+B"))
         self._act_sidebar.setCheckable(True)
         self._act_sidebar.setChecked(self._settings_ctrl.settings.sidebar_visible)
         self._act_sidebar.triggered.connect(self._on_toggle_sidebar)
@@ -291,8 +348,15 @@ class MainWindow(QMainWindow):
         # Menus
         self._file_menu.setTitle(t("file"))
         self._act_new.setText(t("new_note"))
-        self._act_delete.setText(t("delete_note"))
+        self._update_delete_action_text()
+        self._act_attach_file.setText(t("attach_file"))
+        self._act_attach_image.setText(t("attach_image"))
         self._act_quit.setText(t("close"))
+        self._edit_menu.setTitle(t("edit"))
+        self._act_undo.setText(t("undo"))
+        self._act_redo.setText(t("redo"))
+        self._act_find.setText(t("find"))
+        self._act_replace.setText(t("replace"))
         self._view_menu.setTitle(t("view"))
         self._act_sidebar.setText(t("toggle_sidebar"))
         self._act_preview.setText(t("toggle_preview"))
@@ -300,6 +364,8 @@ class MainWindow(QMainWindow):
         self._act_prefs.setText(t("preferences"))
         self._help_menu.setTitle(t("help"))
         self._act_about.setText(t("about"))
+        for key, action in self._format_actions.items():
+            action.setToolTip(t(key))
 
         self._update_status()
 
@@ -380,7 +446,12 @@ class MainWindow(QMainWindow):
         item = self._folder_list.item(row)
         if item:
             self._current_folder = item.data(Qt.ItemDataRole.UserRole)
+            self._update_delete_action_text()
             self._refresh_note_list()
+
+    def _update_delete_action_text(self) -> None:
+        key = "delete_permanently" if self._current_folder == "__trash__" else "move_to_trash"
+        self._act_delete.setText(self._i18n.t(key))
 
     def _on_note_selected(self, row: int) -> None:
         item = self._note_list.item(row)
@@ -559,6 +630,101 @@ class MainWindow(QMainWindow):
             self._refresh_note_list()
 
     # ==================================================================
+    # Editor tools
+    # ==================================================================
+
+    def _wrap_selection(self, prefix: str, suffix: str, placeholder: str) -> None:
+        """Wrap selected editor text with Markdown tokens."""
+        if not self._current_note:
+            return
+        cursor = self._content_edit.textCursor()
+        selected = cursor.selectedText().replace("\u2029", "\n")
+        cursor.insertText(f"{prefix}{selected or placeholder}{suffix}")
+        self._content_edit.setTextCursor(cursor)
+        self._content_edit.setFocus()
+
+    def _prefix_line(self, prefix: str) -> None:
+        """Insert a Markdown prefix at the beginning of the current line."""
+        if not self._current_note:
+            return
+        cursor = self._content_edit.textCursor()
+        cursor.movePosition(QTextCursor.MoveOperation.StartOfLine)
+        cursor.insertText(prefix)
+        self._content_edit.setTextCursor(cursor)
+        self._content_edit.setFocus()
+
+    def _find_text(self) -> None:
+        query, accepted = QInputDialog.getText(
+            self, self._i18n.t("find"), self._i18n.t("find") + ":"
+        )
+        if not accepted or not query:
+            return
+        if not self._content_edit.find(query):
+            cursor = self._content_edit.textCursor()
+            cursor.movePosition(QTextCursor.MoveOperation.Start)
+            self._content_edit.setTextCursor(cursor)
+            if not self._content_edit.find(query):
+                self._statusbar.showMessage(self._i18n.t("text_not_found"), 3000)
+
+    def _replace_text(self) -> None:
+        old, accepted = QInputDialog.getText(
+            self, self._i18n.t("replace"), self._i18n.t("find") + ":"
+        )
+        if not accepted or not old:
+            return
+        new, accepted = QInputDialog.getText(
+            self, self._i18n.t("replace"), self._i18n.t("replace_with") + ":"
+        )
+        if not accepted:
+            return
+        content = self._content_edit.toPlainText()
+        count = content.count(old)
+        if count:
+            self._content_edit.setPlainText(content.replace(old, new))
+            self._statusbar.showMessage(
+                self._i18n.t("replacements_count", count=count),
+                3000,
+            )
+        else:
+            self._statusbar.showMessage(self._i18n.t("text_not_found"), 3000)
+
+    def _attach_file(self, image: bool) -> None:
+        if not self._current_note:
+            return
+        file_filter = (
+            self._i18n.t("image_files") + " (*.png *.jpg *.jpeg *.gif *.webp *.svg)"
+            if image else self._i18n.t("all_files") + " (*)"
+        )
+        source, _ = QFileDialog.getOpenFileName(
+            self,
+            self._i18n.t("attach_image") if image else self._i18n.t("attach_file"),
+            "",
+            file_filter,
+        )
+        if not source:
+            return
+        self._flush_pending_save()
+        try:
+            destination = self._note_ctrl.add_attachment(
+                self._current_note.id,
+                Path(source),
+            )
+        except OSError as error:
+            self._statusbar.showMessage(f"Attachment failed: {error}", 5000)
+            return
+        if not destination:
+            return
+        persisted = self._note_ctrl.get_note(self._current_note.id)
+        if persisted:
+            self._current_note.attachments = persisted.attachments
+        label = destination.name
+        markdown_link = (
+            f"![{label}]({destination.as_uri()})"
+            if image else f"[{label}]({destination.as_uri()})"
+        )
+        self._content_edit.textCursor().insertText(markdown_link)
+
+    # ==================================================================
     # Auto-save
     # ==================================================================
 
@@ -604,6 +770,15 @@ class MainWindow(QMainWindow):
                 text,
                 extensions=["fenced_code", "tables", "nl2br"],
             )
+            html = re.sub(
+                r"<li>\s*\[([ xX])\]\s*",
+                lambda match: (
+                    '<li class="task-item"><span class="task-box">'
+                    + ("☑" if match.group(1).lower() == "x" else "☐")
+                    + "</span> "
+                ),
+                html,
+            )
             # Inject preview styling
             accent = self._settings_ctrl.settings.accent_color
             theme = self._settings_ctrl.settings.theme
@@ -624,6 +799,8 @@ class MainWindow(QMainWindow):
                 table {{ border-collapse: collapse; width: 100%; }}
                 th, td {{ border: 1px solid #3f3f46; padding: 8px; text-align: left; }}
                 th {{ background: {code_bg}; }}
+                li.task-item {{ list-style: none; margin-left: -20px; }}
+                span.task-box {{ color: {accent}; margin-right: 7px; }}
                 hr {{ border: none; border-top: 1px solid #27272a; margin: 16px 0; }}
             </style>
             {html}

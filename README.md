@@ -29,6 +29,9 @@
 | 🔤 **Font Customization** | Change font family and size from the settings |
 | 🌍 **Multi-Language (i18n)** | English and Turkish (Türkçe) with instant switching |
 | 💾 **Auto-Save** | Notes are saved automatically 600ms after typing stops |
+| 🏷️ **Organization** | Tags, favorites, archive, trash, and safe restore |
+| ✍️ **Editor Tools** | Undo/redo, find/replace, Markdown toolbar, and task lists |
+| 📎 **Attachments** | Copy files and images into managed per-note storage |
 | ⌨️ **Keyboard Shortcuts** | `Ctrl+N`, `Ctrl+Delete`, `Ctrl+B`, `Ctrl+P`, `Ctrl+Q` |
 | 🗂️ **XDG Compliant Storage** | Data stored in `~/.local/share/beernotes/` |
 | 🖥️ **Desktop Integration** | Includes `.desktop` file for Linux app launchers |
@@ -116,7 +119,11 @@ Beer-Notes/
 |---|---|
 | `Ctrl + N` | Create new note |
 | `Ctrl + Delete` | Delete current note |
-| `Ctrl + B` | Toggle sidebar |
+| `Ctrl + B` | Bold text |
+| `Ctrl + I` | Italic text |
+| `Ctrl + F` | Find text |
+| `Ctrl + H` | Replace all |
+| `Ctrl + Shift + B` | Toggle sidebar |
 | `Ctrl + P` | Toggle markdown preview |
 | `Ctrl + Q` | Quit application |
 
