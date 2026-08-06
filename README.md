@@ -32,6 +32,7 @@
 | 🏷️ **Organization** | Tags, favorites, archive, trash, and safe restore |
 | ✍️ **Editor Tools** | Undo/redo, find/replace, Markdown toolbar, and task lists |
 | 📎 **Attachments** | Copy files and images into managed per-note storage |
+| 📤 **Export** | Save the current note as Markdown, TXT, HTML, or PDF |
 | 🧩 **Custom Toolbar** | Keep the editor minimal and choose visible tools from Extras |
 | ⌨️ **Keyboard Shortcuts** | `Ctrl+N`, `Ctrl+Delete`, `Ctrl+B`, `Ctrl+P`, `Ctrl+Q` |
 | 🗂️ **XDG Compliant Storage** | Data stored in `~/.local/share/beernotes/` |
@@ -124,6 +125,7 @@ Beer-Notes/
 | `Ctrl + I` | Italic text |
 | `Ctrl + F` | Find text |
 | `Ctrl + H` | Replace all |
+| `Ctrl + Shift + E` | Export current note |
 | `Ctrl + Shift + B` | Toggle sidebar |
 | `Ctrl + P` | Toggle markdown preview |
 | `Ctrl + Q` | Quit application |

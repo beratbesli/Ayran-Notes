@@ -3,6 +3,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from PyQt6.QtWidgets import QApplication
 
@@ -80,6 +81,23 @@ class MainWindowTests(unittest.TestCase):
         self.assertNotIn("bold", saved)
         self.assertTrue(self.window._format_actions["heading"].isVisible())
         self.assertFalse(self.window._format_actions["bold"].isVisible())
+
+    def test_export_flushes_pending_edits_and_adds_selected_suffix(self) -> None:
+        note = self.notes.create_note("Export me")
+        self.window._load_note(note.id)
+        self.window._content_edit.setPlainText("latest content")
+        destination = Path(self.temporary.name) / "exported-note"
+
+        with patch(
+            "beernotes.ui.main_window.QFileDialog.getSaveFileName",
+            return_value=(str(destination), "Markdown (*.md)"),
+        ):
+            self.window._export_current_note()
+
+        exported = destination.with_name(destination.name + ".md")
+        self.assertTrue(exported.is_file())
+        self.assertIn("latest content", exported.read_text(encoding="utf-8"))
+        self.assertEqual(self.storage.get_note(note.id).content, "latest content")
 
 
 if __name__ == "__main__":

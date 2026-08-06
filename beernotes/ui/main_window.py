@@ -33,6 +33,7 @@ from PyQt6.QtWidgets import (
 
 from beernotes.controllers.note_controller import NoteController
 from beernotes.controllers.settings_controller import SettingsController
+from beernotes.exporters import SUPPORTED_SUFFIXES, export_note
 from beernotes.localization.i18n import I18n
 from beernotes.storage.models import AppSettings, Note
 from beernotes.ui.settings_dialog import SettingsDialog
@@ -256,6 +257,11 @@ class MainWindow(QMainWindow):
         self._act_image_attach = QAction(self)
         self._act_image_attach.triggered.connect(lambda: self._attach_file(True))
         self._file_menu.addAction(self._act_image_attach)
+        self._file_menu.addSeparator()
+        self._act_export = QAction(self)
+        self._act_export.setShortcut(QKeySequence("Ctrl+Shift+E"))
+        self._act_export.triggered.connect(self._export_current_note)
+        self._file_menu.addAction(self._act_export)
 
         self._file_menu.addSeparator()
 
@@ -379,6 +385,7 @@ class MainWindow(QMainWindow):
         self._update_delete_action_text()
         self._act_file_attach.setText(t("attach_file"))
         self._act_image_attach.setText(t("attach_image"))
+        self._act_export.setText(t("export"))
         self._act_quit.setText(t("close"))
         self._edit_menu.setTitle(t("edit"))
         self._act_undo.setText(t("undo"))
@@ -785,6 +792,53 @@ class MainWindow(QMainWindow):
             if image else f"[{label}]({destination.as_uri()})"
         )
         self._content_edit.textCursor().insertText(markdown_link)
+
+    def _export_current_note(self) -> None:
+        """Export the active note to a user-selected portable format."""
+        if not self._current_note:
+            self._statusbar.showMessage(self._i18n.t("select_note_to_export"), 3000)
+            return
+        self._flush_pending_save()
+        safe_title = re.sub(r"[^\w .-]+", "_", self._current_note.title).strip(" .")
+        safe_title = safe_title or "note"
+        t = self._i18n.t
+        filters = ";;".join((
+            f"{t('markdown_files')} (*.md)",
+            f"{t('text_files')} (*.txt)",
+            f"{t('html_files')} (*.html)",
+            f"{t('pdf_files')} (*.pdf)",
+        ))
+        destination, selected_filter = QFileDialog.getSaveFileName(
+            self,
+            t("export"),
+            str(Path.home() / f"{safe_title}.md"),
+            filters,
+        )
+        if not destination:
+            return
+        path = Path(destination)
+        if path.suffix.lower() not in SUPPORTED_SUFFIXES:
+            suffix_by_filter = {
+                t("markdown_files"): ".md",
+                t("text_files"): ".txt",
+                t("html_files"): ".html",
+                t("pdf_files"): ".pdf",
+            }
+            suffix = next(
+                (value for label, value in suffix_by_filter.items() if selected_filter.startswith(label)),
+                ".md",
+            )
+            path = path.with_name(path.name + suffix)
+        try:
+            export_note(self._current_note, path)
+        except (OSError, ValueError) as error:
+            QMessageBox.warning(
+                self,
+                t("export_failed"),
+                t("export_failed_detail", error=str(error)),
+            )
+            return
+        self._statusbar.showMessage(t("export_success", path=str(path)), 5000)
 
     # ==================================================================
     # Auto-save
