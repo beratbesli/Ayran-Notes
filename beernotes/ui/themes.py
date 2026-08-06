@@ -54,6 +54,7 @@ def build_stylesheet(
             "accent_text": "#FFFFFF",
             "accent_hover": _shade(accent, 0.90),
             "accent_pressed": _shade(accent, 0.80),
+            "danger": "#FF3B30",
         }
     else:
         palette = {
@@ -73,6 +74,7 @@ def build_stylesheet(
             "accent_text": "#151515",
             "accent_hover": _shade(accent, 1.10),
             "accent_pressed": _shade(accent, 0.88),
+            "danger": "#FF453A",
         }
 
     p = palette
@@ -267,6 +269,20 @@ QPushButton#simpleBackButton {{
 QPushButton#simpleBackButton:hover {{
     background-color: {p["hover"]};
     color: {p["text"]};
+}}
+QPushButton#simpleDeleteButton {{
+    min-width: 38px;
+    min-height: 34px;
+    background-color: transparent;
+    color: {p["secondary"]};
+    border: none;
+    border-radius: 8px;
+    padding: 0;
+    font-size: {size + 1}px;
+}}
+QPushButton#simpleDeleteButton:hover {{
+    background-color: {_rgba(p["danger"], 0.12)};
+    color: {p["danger"]};
 }}
 #simpleTitle {{
     background-color: transparent;

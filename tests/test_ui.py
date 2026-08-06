@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication, QMessageBox
 
 from beernotes.controllers.note_controller import NoteController
 from beernotes.controllers.settings_controller import SettingsController
@@ -145,6 +145,40 @@ class MainWindowTests(unittest.TestCase):
             self.window._simple_editor,
         )
         self.assertEqual(len(self.notes.list_notes("__all__")), 1)
+
+    def test_blank_simple_note_is_deleted_when_returning_home(self) -> None:
+        self.window._on_simple_new_note()
+        note_id = self.window._current_note.id
+
+        self.window._show_simple_home()
+
+        self.assertIsNone(self.storage.get_note(note_id))
+        self.assertIsNone(self.window._current_note)
+        self.assertEqual(self.window._simple_cards.count(), 0)
+
+    def test_written_simple_note_is_retained_when_returning_home(self) -> None:
+        self.window._on_simple_new_note()
+        note_id = self.window._current_note.id
+        self.window._simple_content.setPlainText("Keep this note")
+
+        self.window._show_simple_home()
+
+        saved = self.storage.get_note(note_id)
+        self.assertIsNotNone(saved)
+        self.assertEqual(saved.content, "Keep this note")
+
+    def test_simple_manual_delete_moves_note_to_trash(self) -> None:
+        note = self.notes.create_note("Temporary")
+        self.window._load_simple_note(note.id)
+
+        with patch(
+            "beernotes.ui.main_window.QMessageBox.question",
+            return_value=QMessageBox.StandardButton.Yes,
+        ):
+            self.window._on_simple_delete()
+
+        self.assertTrue(self.storage.get_note(note.id).is_trashed)
+        self.assertIsNone(self.window._current_note)
 
 
 if __name__ == "__main__":

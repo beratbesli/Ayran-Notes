@@ -30,6 +30,7 @@
   "archive_note": "Archive Note",
   "unarchive_note": "Unarchive Note",
   "move_to_trash": "Move to Trash",
+  "confirm_trash": "Move this note to Trash?",
   "restore_note": "Restore Note",
   "delete_permanently": "Delete Permanently",
   "tags_placeholder": "Tags, separated by commas…",

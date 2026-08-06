@@ -246,6 +246,9 @@ class MainWindow(QMainWindow):
         self._simple_cards.setWordWrap(True)
         self._simple_cards.setSpacing(12)
         self._simple_cards.setGridSize(QSize(230, 150))
+        self._simple_cards.setContextMenuPolicy(
+            Qt.ContextMenuPolicy.CustomContextMenu
+        )
         home_layout.addWidget(self._simple_cards, 1)
         self._simple_stack.addWidget(self._simple_home)
 
@@ -256,7 +259,15 @@ class MainWindow(QMainWindow):
         self._simple_back = QPushButton("←")
         self._simple_back.setObjectName("simpleBackButton")
         self._simple_back.setFixedSize(38, 34)
-        editor_layout.addWidget(self._simple_back, 0, Qt.AlignmentFlag.AlignLeft)
+        editor_header = QHBoxLayout()
+        editor_header.setContentsMargins(0, 0, 0, 0)
+        editor_header.addWidget(self._simple_back)
+        editor_header.addStretch(1)
+        self._simple_delete = QPushButton("🗑")
+        self._simple_delete.setObjectName("simpleDeleteButton")
+        self._simple_delete.setFixedSize(38, 34)
+        editor_header.addWidget(self._simple_delete)
+        editor_layout.addLayout(editor_header)
         self._simple_title = QLineEdit()
         self._simple_title.setObjectName("simpleTitle")
         editor_layout.addWidget(self._simple_title)
@@ -462,7 +473,11 @@ class MainWindow(QMainWindow):
         self._simple_search.textChanged.connect(lambda _: self._refresh_simple_cards())
         self._simple_add.clicked.connect(self._on_simple_new_note)
         self._simple_cards.itemClicked.connect(self._on_simple_card_clicked)
+        self._simple_cards.customContextMenuRequested.connect(
+            self._on_simple_card_context_menu
+        )
         self._simple_back.clicked.connect(self._show_simple_home)
+        self._simple_delete.clicked.connect(self._on_simple_delete)
         self._simple_title.textChanged.connect(self._schedule_simple_save)
         self._simple_content.textChanged.connect(self._schedule_simple_save)
 
@@ -486,6 +501,7 @@ class MainWindow(QMainWindow):
         self._simple_content.setPlaceholderText(t("simple_content_placeholder"))
         self._simple_add.setToolTip(t("new_note"))
         self._simple_back.setToolTip(t("back_to_notes"))
+        self._simple_delete.setToolTip(t("move_to_trash"))
 
         # Menus
         self._file_menu.setTitle(t("file"))
@@ -570,6 +586,8 @@ class MainWindow(QMainWindow):
 
     def _change_view_mode(self, mode: str) -> None:
         self._flush_all_edits()
+        if self._simple_stack.currentWidget() is self._simple_editor:
+            self._discard_empty_simple_note()
         if mode == "simple":
             self._show_simple_home()
         self._settings_ctrl.set_view_mode(mode)
@@ -613,9 +631,26 @@ class MainWindow(QMainWindow):
         if note_id:
             self._load_simple_note(note_id)
 
+    def _on_simple_card_context_menu(self, pos) -> None:
+        item = self._simple_cards.itemAt(pos)
+        if not item:
+            return
+        note_id = item.data(Qt.ItemDataRole.UserRole)
+        if not note_id:
+            return
+        menu = QMenu(self)
+        delete_action = menu.addAction(self._i18n.t("move_to_trash"))
+        delete_action.triggered.connect(
+            lambda checked=False, selected_id=note_id: self._confirm_simple_trash(
+                selected_id
+            )
+        )
+        menu.exec(self._simple_cards.mapToGlobal(pos))
+
     def _load_simple_note(self, note_id: str) -> None:
         if self._current_note and self._current_note.id != note_id:
             self._flush_all_edits()
+            self._discard_empty_simple_note()
         note = self._note_ctrl.get_note(note_id)
         if not note:
             return
@@ -633,22 +668,70 @@ class MainWindow(QMainWindow):
 
     def _on_simple_new_note(self) -> None:
         self._flush_all_edits()
+        if self._simple_stack.currentWidget() is self._simple_editor:
+            self._discard_empty_simple_note()
         note = self._note_ctrl.create_note(
-            self._i18n.t("untitled"),
+            "",
             "General",
         )
         self._current_note = note
         self._refresh_simple_cards()
         self._load_simple_note(note.id)
         self._simple_title.setFocus()
-        self._simple_title.selectAll()
 
     def _show_simple_home(self) -> None:
         self._flush_simple_save()
+        self._discard_empty_simple_note()
         self._current_note = None
         self._simple_stack.setCurrentWidget(self._simple_home)
         self._refresh_simple_cards()
         self._update_status()
+
+    @staticmethod
+    def _is_empty_simple_note(
+        note: Note,
+        title: Optional[str] = None,
+        content: Optional[str] = None,
+    ) -> bool:
+        """Return whether a simple-mode draft contains no useful information."""
+        visible_title = note.title if title is None else title
+        visible_content = note.content if content is None else content
+        empty_titles = {"", "Untitled", "Başlıksız"}
+        return (
+            visible_title.strip() in empty_titles
+            and not visible_content.strip()
+            and not note.tags
+            and not note.attachments
+        )
+
+    def _discard_empty_simple_note(self) -> bool:
+        """Permanently remove the active blank draft without filling Trash."""
+        note = self._current_note
+        if not note or not self._is_empty_simple_note(
+            note,
+            self._simple_title.text(),
+            self._simple_content.toPlainText(),
+        ):
+            return False
+        note_id = note.id
+        if not self._note_ctrl.delete_note(note_id):
+            return False
+        self._clear_current_note(note_id)
+        return True
+
+    def _on_simple_delete(self) -> None:
+        if self._current_note:
+            self._confirm_simple_trash(self._current_note.id)
+
+    def _confirm_simple_trash(self, note_id: str) -> None:
+        reply = QMessageBox.question(
+            self,
+            self._i18n.t("move_to_trash"),
+            self._i18n.t("confirm_trash"),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            self._trash_note(note_id)
 
     def _schedule_simple_save(self) -> None:
         if self._current_note:
@@ -1276,6 +1359,8 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event) -> None:
         # Save any pending edits
         self._flush_all_edits()
+        if self._simple_stack.currentWidget() is self._simple_editor:
+            self._discard_empty_simple_note()
         # Save window geometry
         g = (
             self.normalGeometry()

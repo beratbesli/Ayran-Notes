@@ -30,6 +30,7 @@
   "archive_note": "Notu Arşivle",
   "unarchive_note": "Arşivden Çıkar",
   "move_to_trash": "Çöp Kutusuna Taşı",
+  "confirm_trash": "Bu not Çöp Kutusu'na taşınsın mı?",
   "restore_note": "Notu Geri Yükle",
   "delete_permanently": "Kalıcı Olarak Sil",
   "tags_placeholder": "Etiketler, virgülle ayırın…",
