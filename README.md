@@ -24,21 +24,21 @@
 | 📂 **Folder Organization** | Organize notes into custom folders |
 | 📌 **Pin Notes** | Pin important notes to the top of the list |
 | 🔍 **Full-Text Search** | Instantly search across all note titles and content |
-| 🌙 **Dark & Light Themes** | Beautiful dark and light modes with smooth transitions |
-| 🎨 **Custom Accent Colors** | Pick any color as your accent — applied instantly |
+| 🌙 **Refined Themes** | Calm, Apple-inspired light and dark interfaces |
+| 🎨 **Accessible Accent Colors** | Pick any accent; foreground contrast adjusts automatically |
 | 🔤 **Font Customization** | Change font family and size from the settings |
 | 🌍 **Multi-Language (i18n)** | English and Turkish (Türkçe) with instant switching |
-| 💾 **Auto-Save** | Notes are saved automatically 600ms after typing stops |
+| 💾 **Safe Auto-Save** | Visible save status, atomic writes, and close protection on failure |
 | 🏷️ **Organization** | Tags, favorites, archive, trash, and safe restore |
 | ✍️ **Editor Tools** | Undo/redo, find/replace, Markdown toolbar, and task lists |
 | 📎 **Attachments** | Copy files and images into managed per-note storage |
 | 📤 **Export** | Save the current note as Markdown, TXT, HTML, or PDF |
 | 📥 **Import** | Import multiple Markdown, TXT, HTML, or Beer Notes JSON files |
 | 🧩 **Custom Toolbar** | Keep the editor minimal and choose visible tools from Extras |
-| 🗃️ **Simple Mode** | Searchable note cards and a distraction-free writing screen |
+| 🗃️ **Simple Mode** | Searchable summary cards, empty-state guidance, and focused writing |
 | ⌨️ **Keyboard Shortcuts** | `Ctrl+N`, `Ctrl+Delete`, `Ctrl+B`, `Ctrl+P`, `Ctrl+Q` |
 | 🗂️ **XDG Compliant Storage** | Data stored in `~/.local/share/beernotes/` |
-| 🖥️ **Desktop Integration** | Includes `.desktop` file for Linux app launchers |
+| 🖥️ **Desktop Integration** | Portable shortcut runs directly from the cloned repository |
 
 ---
 
@@ -141,16 +141,16 @@ Editor buttons are intentionally minimal by default. Open
 attachment buttons. The selection is saved automatically.
 
 Beer Notes starts in **Simple Mode** with searchable note cards. Select a card
-to open the distraction-free editor, or use the centered `+` button to create
-a note. Switch between **Simple Mode** and **Detailed Mode** from the
-`Mode` menu; the choice is remembered.
+to open the distraction-free editor, or use the `+` button to create a note.
+Switch modes with the segmented control at the top or from the `View` menu;
+the choice is remembered.
 
 ---
 
 ## 🎨 Customization
 
 ### Themes
-Switch between **Dark** and **Light** mode from `Settings → Preferences → Appearance`.
+Switch between **Dark** and **Light** mode from `Extras → Preferences → Appearance`.
 
 ### Accent Color
 Click the accent color button to open a color picker and choose any color. Changes apply instantly.
@@ -159,7 +159,7 @@ Click the accent color button to open a color picker and choose any color. Chang
 Select from popular fonts (Inter, Roboto, Fira Code, JetBrains Mono, etc.) or type any installed font name. Adjust size from 8px to 32px.
 
 ### Language
-Switch between **English** and **Türkçe** from `Settings → Preferences → General`. The entire UI updates instantly — no restart required.
+Switch between **English** and **Türkçe** from `Extras → Preferences → General`. The entire UI updates instantly — no restart required.
 
 ---
 
@@ -169,10 +169,11 @@ All data is stored locally following XDG standards:
 
 ```
 ~/.local/share/beernotes/
-├── settings.json          # Application preferences
-└── notes/
-    ├── <note_id>.json     # Individual note files
-    └── ...
+├── settings.json            # Application preferences
+├── notes/
+│   ├── <note_id>.json       # Individual note files
+│   └── ...
+└── attachments/             # Managed files grouped by note ID
 ```
 
 Notes are stored as individual JSON files, making them easy to back up, sync, or inspect.
@@ -206,6 +207,9 @@ pip install -e .
 
 # Run as module
 python3 -m beernotes.main
+
+# Run the complete headless test suite
+QT_QPA_PLATFORM=offscreen python3 -m unittest discover -s tests -v
 ```
 
 ---

@@ -77,9 +77,19 @@ class NoteController(QObject):
     # Write
     # ------------------------------------------------------------------
 
-    def create_note(self, title: str = "Untitled", folder: str = "General") -> Note:
+    def create_note(
+        self,
+        title: str = "Untitled",
+        folder: str = "General",
+        *,
+        simple_draft: bool = False,
+    ) -> Note:
         """Create and persist a new empty note."""
-        note = Note(title=title, folder=folder)
+        note = Note(
+            title=title,
+            folder=folder,
+            is_simple_draft=simple_draft,
+        )
         self._storage.save_note(note)
         self.notes_changed.emit()
         self.note_saved.emit(note.id)

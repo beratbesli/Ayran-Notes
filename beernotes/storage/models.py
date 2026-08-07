@@ -30,6 +30,7 @@ class Note:
     is_favorite: bool = False
     is_archived: bool = False
     is_trashed: bool = False
+    is_simple_draft: bool = False
     tags: list[str] = field(default_factory=list)
     attachments: list[str] = field(default_factory=list)
     created_at: str = field(default_factory=_utcnow)
@@ -51,6 +52,7 @@ class Note:
             "is_favorite": self.is_favorite,
             "is_archived": self.is_archived,
             "is_trashed": self.is_trashed,
+            "is_simple_draft": self.is_simple_draft,
             "tags": self.tags,
             "attachments": self.attachments,
             "created_at": self.created_at,
@@ -82,6 +84,7 @@ class Note:
             is_favorite=data.get("is_favorite", False),
             is_archived=data.get("is_archived", False),
             is_trashed=data.get("is_trashed", False),
+            is_simple_draft=data.get("is_simple_draft", False),
             tags=tags,
             attachments=attachments,
             created_at=data.get("created_at", _utcnow()),

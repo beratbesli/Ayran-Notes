@@ -11,6 +11,7 @@ from importlib.resources import files
 from PyQt6.QtGui import QFont, QIcon
 from PyQt6.QtWidgets import QApplication
 
+from beernotes import __version__
 from beernotes.controllers.note_controller import NoteController
 from beernotes.controllers.settings_controller import SettingsController
 from beernotes.localization.i18n import I18n
@@ -22,7 +23,7 @@ def main() -> None:
     """Launch the Beer Notes application."""
     app = QApplication(sys.argv)
     app.setApplicationName("Beer Notes")
-    app.setApplicationVersion("1.2.0")
+    app.setApplicationVersion(__version__)
     app.setWindowIcon(
         QIcon(str(files("beernotes").joinpath("assets", "beernotes.png")))
     )
