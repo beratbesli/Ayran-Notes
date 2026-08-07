@@ -14,7 +14,9 @@ from pathlib import Path
 APP_ID = "beernotes"
 PROJECT_DIR = Path(__file__).resolve().parent
 LAUNCHER = PROJECT_DIR / "run.py"
+SOURCE_PACKAGE = PROJECT_DIR / "beernotes"
 SOURCE_ICON = PROJECT_DIR / "beernotes" / "assets" / "beernotes.png"
+INSTALL_DIR_NAME = "beernotes-app"
 
 
 def _data_home() -> Path:
@@ -51,16 +53,27 @@ def _refresh_desktop_database(applications_dir: Path) -> None:
 
 
 def install() -> Path:
-    """Install a launcher and icon under the current user's XDG data directory."""
-    if not LAUNCHER.is_file() or not SOURCE_ICON.is_file():
+    """Install a self-contained app copy and desktop entry for this user."""
+    if not LAUNCHER.is_file() or not SOURCE_PACKAGE.is_dir() or not SOURCE_ICON.is_file():
         raise FileNotFoundError("Beer Notes files are incomplete; clone the repository again.")
 
     data_home = _data_home()
+    install_dir = data_home / INSTALL_DIR_NAME
+    installed_package = install_dir / "beernotes"
+    installed_launcher = install_dir / "run.py"
     applications_dir = data_home / "applications"
     icons_dir = data_home / "icons" / "hicolor" / "512x512" / "apps"
     desktop_path = applications_dir / f"{APP_ID}.desktop"
     icon_path = icons_dir / f"{APP_ID}.png"
 
+    install_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(
+        SOURCE_PACKAGE,
+        installed_package,
+        dirs_exist_ok=True,
+        ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo"),
+    )
+    shutil.copy2(LAUNCHER, installed_launcher)
     applications_dir.mkdir(parents=True, exist_ok=True)
     icons_dir.mkdir(parents=True, exist_ok=True)
     shutil.copy2(SOURCE_ICON, icon_path)
@@ -71,11 +84,11 @@ Type=Application
 Name=Beer Notes
 GenericName=Note-Taking App
 Comment=A lightweight, customizable note-taking application for Linux
-Exec={_quote_exec_arg(Path(sys.executable))} {_quote_exec_arg(LAUNCHER)}
-Path={_desktop_value(PROJECT_DIR)}
+Exec={_quote_exec_arg(Path(sys.executable))} {_quote_exec_arg(installed_launcher)}
+Path={_desktop_value(install_dir)}
 Icon={APP_ID}
 Terminal=false
-Categories=Office;TextEditor;
+Categories=Utility;TextEditor;
 Keywords=notes;markdown;editor;text;
 StartupWMClass=beernotes
 StartupNotify=true
@@ -92,9 +105,11 @@ def uninstall() -> None:
     applications_dir = data_home / "applications"
     desktop_path = applications_dir / f"{APP_ID}.desktop"
     icon_path = data_home / "icons" / "hicolor" / "512x512" / "apps" / f"{APP_ID}.png"
+    install_dir = data_home / INSTALL_DIR_NAME
 
     desktop_path.unlink(missing_ok=True)
     icon_path.unlink(missing_ok=True)
+    shutil.rmtree(install_dir, ignore_errors=True)
     _refresh_desktop_database(applications_dir)
 
 

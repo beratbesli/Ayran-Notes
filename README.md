@@ -75,8 +75,11 @@ To add Beer Notes to your Linux application menu:
 python3 install_shortcut.py
 ```
 
-The installer automatically detects the repository, Python, icon, and XDG
-application-menu paths. To remove the shortcut later:
+The installer automatically detects Python and the XDG application-menu paths.
+It copies the required application files to the current user's stable local data
+directory, so the shortcut keeps working if the repository is moved, deleted, or
+stored on a drive that is not mounted at login. Run the installer again after an
+update to refresh this local application copy. To remove the shortcut later:
 
 ```bash
 python3 install_shortcut.py --uninstall
