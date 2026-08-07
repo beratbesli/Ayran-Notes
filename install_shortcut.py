@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -16,7 +17,8 @@ PROJECT_DIR = Path(__file__).resolve().parent
 LAUNCHER = PROJECT_DIR / "run.py"
 SOURCE_PACKAGE = PROJECT_DIR / "beernotes"
 SOURCE_ICON = PROJECT_DIR / "beernotes" / "assets" / "beernotes.png"
-INSTALL_DIR_NAME = "beernotes-app"
+WRAPPER_NAME = "beernotes-repo"
+LEGACY_INSTALL_DIR_NAME = "beernotes-app"
 
 
 def _data_home() -> Path:
@@ -24,21 +26,15 @@ def _data_home() -> Path:
     return Path(configured).expanduser() if configured else Path.home() / ".local" / "share"
 
 
+def _bin_home() -> Path:
+    return Path.home() / ".local" / "bin"
+
+
 def _quote_exec_arg(value: Path) -> str:
     escaped = str(value).replace("\\", "\\\\")
     for character in ('"', "`", "$"):
         escaped = escaped.replace(character, "\\" + character)
     return f'"{escaped}"'
-
-
-def _desktop_value(value: Path) -> str:
-    return (
-        str(value)
-        .replace("\\", "\\\\")
-        .replace("\n", "\\n")
-        .replace("\r", "\\r")
-        .replace("\t", "\\t")
-    )
 
 
 def _refresh_desktop_database(applications_dir: Path) -> None:
@@ -53,30 +49,44 @@ def _refresh_desktop_database(applications_dir: Path) -> None:
 
 
 def install() -> Path:
-    """Install a self-contained app copy and desktop entry for this user."""
+    """Install a tiny repository launcher and desktop entry for this user."""
     if not LAUNCHER.is_file() or not SOURCE_PACKAGE.is_dir() or not SOURCE_ICON.is_file():
         raise FileNotFoundError("Beer Notes files are incomplete; clone the repository again.")
 
     data_home = _data_home()
-    install_dir = data_home / INSTALL_DIR_NAME
-    installed_package = install_dir / "beernotes"
-    installed_launcher = install_dir / "run.py"
+    bin_home = _bin_home()
+    wrapper_path = bin_home / WRAPPER_NAME
     applications_dir = data_home / "applications"
     icons_dir = data_home / "icons" / "hicolor" / "512x512" / "apps"
     desktop_path = applications_dir / f"{APP_ID}.desktop"
     icon_path = icons_dir / f"{APP_ID}.png"
 
-    install_dir.mkdir(parents=True, exist_ok=True)
-    shutil.copytree(
-        SOURCE_PACKAGE,
-        installed_package,
-        dirs_exist_ok=True,
-        ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo"),
-    )
-    shutil.copy2(LAUNCHER, installed_launcher)
+    bin_home.mkdir(parents=True, exist_ok=True)
     applications_dir.mkdir(parents=True, exist_ok=True)
     icons_dir.mkdir(parents=True, exist_ok=True)
     shutil.copy2(SOURCE_ICON, icon_path)
+
+    wrapper = f"""#!/bin/sh
+PROJECT_DIR={shlex.quote(str(PROJECT_DIR))}
+APP_LAUNCHER={shlex.quote(str(LAUNCHER))}
+
+if [ ! -f "$APP_LAUNCHER" ]; then
+    MESSAGE="Beer Notes project files are unavailable: $PROJECT_DIR"
+    if command -v notify-send >/dev/null 2>&1; then
+        notify-send "Beer Notes" "$MESSAGE"
+    fi
+    printf '%s\\n' "$MESSAGE" >&2
+    exit 1
+fi
+
+cd "$PROJECT_DIR" || exit 1
+exec {shlex.quote(sys.executable)} "$APP_LAUNCHER"
+"""
+    wrapper_path.write_text(wrapper, encoding="utf-8")
+    wrapper_path.chmod(0o755)
+
+    # Remove the full duplicate created by versions prior to 1.2.0.
+    shutil.rmtree(data_home / LEGACY_INSTALL_DIR_NAME, ignore_errors=True)
 
     desktop_entry = f"""[Desktop Entry]
 Version=1.0
@@ -84,8 +94,7 @@ Type=Application
 Name=Beer Notes
 GenericName=Note-Taking App
 Comment=A lightweight, customizable note-taking application for Linux
-Exec={_quote_exec_arg(Path(sys.executable))} {_quote_exec_arg(installed_launcher)}
-Path={_desktop_value(install_dir)}
+Exec={_quote_exec_arg(wrapper_path)}
 Icon={APP_ID}
 Terminal=false
 Categories=Utility;TextEditor;
@@ -105,11 +114,12 @@ def uninstall() -> None:
     applications_dir = data_home / "applications"
     desktop_path = applications_dir / f"{APP_ID}.desktop"
     icon_path = data_home / "icons" / "hicolor" / "512x512" / "apps" / f"{APP_ID}.png"
-    install_dir = data_home / INSTALL_DIR_NAME
+    wrapper_path = _bin_home() / WRAPPER_NAME
 
     desktop_path.unlink(missing_ok=True)
     icon_path.unlink(missing_ok=True)
-    shutil.rmtree(install_dir, ignore_errors=True)
+    wrapper_path.unlink(missing_ok=True)
+    shutil.rmtree(data_home / LEGACY_INSTALL_DIR_NAME, ignore_errors=True)
     _refresh_desktop_database(applications_dir)
 
 

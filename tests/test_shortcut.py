@@ -13,9 +13,13 @@ class ShortcutInstallerTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
         self.data_home = Path(self.temporary.name)
+        self.home = self.data_home / "home"
         self.environment = patch.dict(
             os.environ,
-            {"XDG_DATA_HOME": str(self.data_home)},
+            {
+                "HOME": str(self.home),
+                "XDG_DATA_HOME": str(self.data_home),
+            },
         )
         self.environment.start()
         self.no_database_refresh = patch(
@@ -29,20 +33,25 @@ class ShortcutInstallerTests(unittest.TestCase):
         self.environment.stop()
         self.temporary.cleanup()
 
-    def test_install_uses_stable_local_copy_instead_of_repository(self) -> None:
-        desktop_path = install_shortcut.install()
-        install_dir = self.data_home / install_shortcut.INSTALL_DIR_NAME
-        installed_launcher = install_dir / "run.py"
-        installed_package = install_dir / "beernotes"
+    def test_install_uses_small_wrapper_that_runs_repository(self) -> None:
+        legacy_copy = self.data_home / install_shortcut.LEGACY_INSTALL_DIR_NAME
+        legacy_copy.mkdir()
+        (legacy_copy / "stale-file").touch()
 
-        self.assertTrue(installed_launcher.is_file())
-        self.assertTrue((installed_package / "main.py").is_file())
+        desktop_path = install_shortcut.install()
+        wrapper_path = self.home / ".local" / "bin" / install_shortcut.WRAPPER_NAME
+
+        self.assertTrue(wrapper_path.is_file())
+        self.assertFalse(legacy_copy.exists())
+        wrapper = wrapper_path.read_text(encoding="utf-8")
+        self.assertIn(str(install_shortcut.PROJECT_DIR), wrapper)
+        self.assertIn(str(install_shortcut.LAUNCHER), wrapper)
         desktop_entry = desktop_path.read_text(encoding="utf-8")
-        self.assertIn(f'"{installed_launcher}"', desktop_entry)
-        self.assertIn(f"Path={install_dir}", desktop_entry)
+        self.assertIn(f'"{wrapper_path}"', desktop_entry)
+        self.assertNotIn("Path=", desktop_entry)
         self.assertNotIn(str(install_shortcut.PROJECT_DIR), desktop_entry)
 
-    def test_uninstall_removes_shortcut_icon_and_local_copy(self) -> None:
+    def test_uninstall_removes_shortcut_icon_and_wrapper(self) -> None:
         desktop_path = install_shortcut.install()
         icon_path = (
             self.data_home
@@ -52,13 +61,13 @@ class ShortcutInstallerTests(unittest.TestCase):
             / "apps"
             / "beernotes.png"
         )
-        install_dir = self.data_home / install_shortcut.INSTALL_DIR_NAME
+        wrapper_path = self.home / ".local" / "bin" / install_shortcut.WRAPPER_NAME
 
         install_shortcut.uninstall()
 
         self.assertFalse(desktop_path.exists())
         self.assertFalse(icon_path.exists())
-        self.assertFalse(install_dir.exists())
+        self.assertFalse(wrapper_path.exists())
 
 
 if __name__ == "__main__":
