@@ -7,8 +7,6 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
-import markdown
-
 from PyQt6.QtCore import QSize, Qt, QTimer
 from PyQt6.QtGui import QAction, QActionGroup, QKeySequence, QTextCursor
 from PyQt6.QtWidgets import (
@@ -42,6 +40,10 @@ from beernotes.exporters import SUPPORTED_SUFFIXES, export_note
 from beernotes.importers import import_note
 from beernotes.localization.i18n import I18n
 from beernotes.storage.models import AppSettings, Note
+from beernotes.ui.markdown_support import (
+    MarkdownSyntaxHighlighter,
+    render_markdown_html,
+)
 from beernotes.ui.settings_dialog import SettingsDialog
 from beernotes.ui.themes import build_stylesheet
 
@@ -184,6 +186,10 @@ class MainWindow(QMainWindow):
         self._content_edit = QPlainTextEdit()
         self._content_edit.setObjectName("contentEdit")
         self._content_edit.setTabStopDistance(32.0)
+        self._content_highlighter = MarkdownSyntaxHighlighter(
+            self._content_edit.document(),
+            s.theme,
+        )
 
         self._editor_toolbar = QToolBar()
         self._editor_toolbar.setObjectName("editorToolbar")
@@ -314,6 +320,10 @@ class MainWindow(QMainWindow):
         editor_layout.addWidget(self._simple_title)
         self._simple_content = QPlainTextEdit()
         self._simple_content.setObjectName("simpleContent")
+        self._simple_content_highlighter = MarkdownSyntaxHighlighter(
+            self._simple_content.document(),
+            self._settings_ctrl.settings.theme,
+        )
         editor_layout.addWidget(self._simple_content, 1)
         self._simple_stack.addWidget(self._simple_editor)
 
@@ -645,6 +655,8 @@ class MainWindow(QMainWindow):
     def _apply_settings(self, s: AppSettings) -> None:
         qss = build_stylesheet(s.theme, s.accent_color, s.font_family, s.font_size)
         self.setStyleSheet(qss)
+        self._content_highlighter.set_theme(s.theme)
+        self._simple_content_highlighter.set_theme(s.theme)
         self._sidebar.setVisible(s.sidebar_visible)
         self._act_sidebar.setChecked(s.sidebar_visible)
         self._preview.setVisible(s.preview_visible)
@@ -901,6 +913,9 @@ class MainWindow(QMainWindow):
         if not note:
             return
         self._current_note = note
+        self._simple_content_highlighter.set_highlighting_enabled(
+            note.is_markdown
+        )
         self._simple_title.blockSignals(True)
         self._simple_content.blockSignals(True)
         self._simple_title.setText(note.title)
@@ -1131,6 +1146,7 @@ class MainWindow(QMainWindow):
         self._current_note = note
         self._last_detailed_note_id = note.id
         self._set_detailed_editor_enabled(True)
+        self._content_highlighter.set_highlighting_enabled(note.is_markdown)
         self._title_edit.blockSignals(True)
         self._tag_edit.blockSignals(True)
         self._content_edit.blockSignals(True)
@@ -1278,6 +1294,8 @@ class MainWindow(QMainWindow):
             editor.blockSignals(True)
             editor.clear()
             editor.blockSignals(False)
+        self._content_highlighter.set_highlighting_enabled(False)
+        self._simple_content_highlighter.set_highlighting_enabled(False)
         self._preview.clear()
         self._set_detailed_editor_enabled(False)
 
@@ -1636,46 +1654,14 @@ class MainWindow(QMainWindow):
     def _update_preview(self) -> None:
         text = self._content_edit.toPlainText()
         if self._current_note and self._current_note.is_markdown:
-            html = markdown.markdown(
+            settings = self._settings_ctrl.settings
+            self._preview.setHtml(render_markdown_html(
                 text,
-                extensions=["fenced_code", "tables", "nl2br"],
-            )
-            html = re.sub(
-                r"<li>\s*\[([ xX])\]\s*",
-                lambda match: (
-                    '<li class="task-item"><span class="task-box">'
-                    + ("☑" if match.group(1).lower() == "x" else "☐")
-                    + "</span> "
-                ),
-                html,
-            )
-            # Inject preview styling
-            accent = self._settings_ctrl.settings.accent_color
-            theme = self._settings_ctrl.settings.theme
-            fg = "#F5F5F7" if theme == "dark" else "#1D1D1F"
-            bg = "#1F1F21" if theme == "dark" else "#FAFAFC"
-            code_bg = "#2A2A2D" if theme == "dark" else "#EFEFF2"
-            font = self._settings_ctrl.settings.font_family
-            size = self._settings_ctrl.settings.font_size
-            styled = f"""
-            <style>
-                body {{ color: {fg}; background: {bg}; font-family: "{font}", sans-serif; font-size: {size}px; line-height: 1.7; padding: 8px; }}
-                h1, h2, h3 {{ color: {accent}; margin-top: 16px; }}
-                a {{ color: {accent}; }}
-                code {{ background: {code_bg}; padding: 2px 6px; border-radius: 4px; font-family: "Fira Code", monospace; font-size: {size - 1}px; }}
-                pre {{ background: {code_bg}; padding: 12px; border-radius: 8px; overflow-x: auto; }}
-                pre code {{ padding: 0; }}
-                blockquote {{ border-left: 3px solid {accent}; padding-left: 12px; color: #71717a; margin: 8px 0; }}
-                table {{ border-collapse: collapse; width: 100%; }}
-                th, td {{ border: 1px solid #3f3f46; padding: 8px; text-align: left; }}
-                th {{ background: {code_bg}; }}
-                li.task-item {{ list-style: none; margin-left: -20px; }}
-                span.task-box {{ color: {accent}; margin-right: 7px; }}
-                hr {{ border: none; border-top: 1px solid #27272a; margin: 16px 0; }}
-            </style>
-            {html}
-            """
-            self._preview.setHtml(styled)
+                theme=settings.theme,
+                accent=settings.accent_color,
+                font_family=settings.font_family,
+                font_size=settings.font_size,
+            ))
         else:
             self._preview.setPlainText(text)
 

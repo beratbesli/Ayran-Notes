@@ -20,7 +20,7 @@
 
 | Feature | Description |
 |---|---|
-| 📝 **Markdown Editor** | Write notes in Markdown with live HTML preview |
+| 📝 **Markdown Editor** | Pygments-highlighted fenced code in the editor and matching live preview |
 | 📂 **Folder Organization** | Organize notes into custom folders |
 | 📌 **Pin Notes** | Pin important notes to the top of the list |
 | 🔍 **Full-Text Search** | Instantly search across all note titles and content |
@@ -52,6 +52,7 @@
 - **Python 3.10+**
 - **PyQt6** (`pip install PyQt6`)
 - **markdown** (`pip install markdown`)
+- **Pygments** (`pip install Pygments`)
 - **PyYAML** (`pip install PyYAML`)
 
 ### Installation
@@ -113,6 +114,7 @@ Beer-Notes/
 │   │   └── tr.json             # Turkish locale
 │   └── ui/                     # PyQt6 UI components
 │       ├── main_window.py      # Main application window
+│       ├── markdown_support.py # Fenced-code highlighting and preview rendering
 │       ├── settings_dialog.py  # Preferences dialog
 │       └── themes.py           # Dark/Light theme QSS engine
 ├── run.py                      # Convenience launcher

@@ -71,6 +71,29 @@ class MainWindowTests(unittest.TestCase):
         self.window._prefix_line("- [ ] ")
         self.assertEqual(self.window._content_edit.toPlainText(), "- [ ] hello")
 
+    def test_markdown_highlighters_follow_note_type_and_theme(self) -> None:
+        markdown_note = self.notes.create_note("Markdown")
+        plain_note = self.notes.create_note("Plain")
+        plain_note.is_markdown = False
+        self.notes.save_note(plain_note)
+
+        self.window._load_note(markdown_note.id)
+        self.assertTrue(self.window._content_highlighter.highlighting_enabled)
+
+        self.window._load_note(plain_note.id)
+        self.assertFalse(self.window._content_highlighter.highlighting_enabled)
+        self.window._load_simple_note(markdown_note.id)
+        self.assertTrue(
+            self.window._simple_content_highlighter.highlighting_enabled
+        )
+
+        self.window._settings_ctrl.set_theme("light")
+        self.assertEqual(self.window._content_highlighter.theme, "light")
+        self.assertEqual(
+            self.window._simple_content_highlighter.theme,
+            "light",
+        )
+
     def test_toolbar_can_be_customized_and_persisted(self) -> None:
         self.assertTrue(self.window._format_actions["bold"].isVisible())
         self.assertFalse(self.window._format_actions["heading"].isVisible())
