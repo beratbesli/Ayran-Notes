@@ -35,6 +35,7 @@ class Note:
     attachments: list[str] = field(default_factory=list)
     created_at: str = field(default_factory=_utcnow)
     updated_at: str = field(default_factory=_utcnow)
+    _storage_revision: str = field(default="", repr=False, compare=False)
 
     def touch(self) -> None:
         """Update the `updated_at` timestamp to now."""
@@ -112,6 +113,8 @@ class AppSettings:
         default_factory=lambda: ["bold", "italic", "checklist"]
     )
     view_mode: str = "simple"
+    notes_directory: str = ""
+    notes_directory_id: str = ""
     compact_window_migrated: bool = False
 
     def to_dict(self) -> dict:
@@ -131,6 +134,8 @@ class AppSettings:
             "sidebar_folder_height": self.sidebar_folder_height,
             "toolbar_actions": self.toolbar_actions,
             "view_mode": self.view_mode,
+            "notes_directory": self.notes_directory,
+            "notes_directory_id": self.notes_directory_id,
             "compact_window_migrated": self.compact_window_migrated,
         }
 
@@ -145,4 +150,8 @@ class AppSettings:
             s.toolbar_actions = ["bold", "italic", "checklist"]
         if s.view_mode not in {"simple", "detailed"}:
             s.view_mode = "simple"
+        if not isinstance(s.notes_directory, str):
+            s.notes_directory = ""
+        if not isinstance(s.notes_directory_id, str):
+            s.notes_directory_id = ""
         return s

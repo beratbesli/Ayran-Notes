@@ -11,6 +11,7 @@ from pathlib import Path
 from PyQt6.QtGui import QTextDocument
 
 from beernotes.storage.models import Note
+from beernotes.storage.markdown_notes import deserialize_note
 
 
 SUPPORTED_SUFFIXES = {".md", ".markdown", ".txt", ".html", ".htm", ".json"}
@@ -70,6 +71,19 @@ def import_note(path: Path) -> ImportedNote:
         )
 
     if suffix in {".md", ".markdown"}:
+        if raw.removeprefix("\ufeff").startswith("---"):
+            try:
+                stored_note = deserialize_note(raw, "000000000000")
+            except (TypeError, ValueError):
+                pass
+            else:
+                return ImportedNote(
+                    stored_note.title,
+                    stored_note.content,
+                    stored_note.tags,
+                    folder=stored_note.folder,
+                    is_markdown=stored_note.is_markdown,
+                )
         title, tags, lines = _consume_metadata(raw.splitlines(), fallback_title)
         return ImportedNote(title, "\n".join(lines).rstrip(), tags, is_markdown=True)
 

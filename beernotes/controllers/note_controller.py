@@ -26,6 +26,11 @@ class NoteController(QObject):
         super().__init__(parent)
         self._storage = storage
 
+    @property
+    def notes_directory(self) -> Path:
+        """Return the directory that is currently the note source of truth."""
+        return self._storage.notes_dir
+
     # ------------------------------------------------------------------
     # Read
     # ------------------------------------------------------------------

@@ -419,6 +419,38 @@ class MainWindowTests(unittest.TestCase):
             "Notların burada görünecek",
         )
 
+    def test_changing_notes_directory_flushes_and_clears_old_context(
+        self,
+    ) -> None:
+        note = self.notes.create_note("Old location")
+        self.window._load_simple_note(note.id)
+        self.window._simple_content.setPlainText("saved before switching")
+        shared = Path(self.temporary.name) / "shared-notes"
+        shared.mkdir()
+
+        def switch_directory() -> int:
+            self.window._settings_ctrl.set_notes_directory(shared)
+            return 0
+
+        with patch(
+            "beernotes.ui.main_window.SettingsDialog.exec",
+            side_effect=switch_directory,
+        ):
+            self.window._on_open_settings()
+
+        old_path = self.storage.default_notes_dir / f"{note.id}.md"
+        self.assertTrue(old_path.is_file())
+        self.assertIn(
+            "saved before switching",
+            old_path.read_text(encoding="utf-8"),
+        )
+        self.assertEqual(self.storage.notes_dir, shared.resolve())
+        self.assertIsNone(self.window._current_note)
+        self.assertEqual(self.window._simple_cards.count(), 0)
+
+        new_note = self.notes.create_note("New location")
+        self.assertTrue((shared / f"{new_note.id}.md").is_file())
+
     def test_failed_note_switch_restores_visible_selection(self) -> None:
         first = self.notes.create_note("First")
         second = self.notes.create_note("Second")

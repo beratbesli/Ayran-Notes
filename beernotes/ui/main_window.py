@@ -1723,8 +1723,21 @@ class MainWindow(QMainWindow):
     # ==================================================================
 
     def _on_open_settings(self) -> None:
+        if not self._flush_all_edits():
+            return
+        previous_notes_directory = self._note_ctrl.notes_directory
         dlg = SettingsDialog(self._settings_ctrl, self._i18n, self)
         dlg.exec()
+        if self._note_ctrl.notes_directory != previous_notes_directory:
+            self._save_timer.stop()
+            self._simple_save_timer.stop()
+            self._dirty = False
+            self._simple_dirty = False
+            self._current_note = None
+            self._last_detailed_note_id = None
+            self._clear_editor_fields()
+            self._simple_stack.setCurrentWidget(self._simple_home)
+            self._refresh_note_views()
 
     def _on_about(self) -> None:
         QMessageBox.about(self, self._i18n.t("about"), self._i18n.t("about_text"))

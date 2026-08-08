@@ -29,6 +29,9 @@
 | 🔤 **Font Customization** | Change font family and size from the settings |
 | 🌍 **Multi-Language (i18n)** | English and Turkish (Türkçe) with instant switching |
 | 💾 **Safe Auto-Save** | Visible save status, atomic writes, and close protection on failure |
+| 📄 **Plain Markdown Storage** | Notes are readable `.md` files with YAML front matter |
+| 🔄 **Safe JSON Migration** | Legacy JSON notes are converted once with exact backups |
+| 💽 **Configurable Notes Folder** | Keep notes in XDG storage or any existing shared folder |
 | 🏷️ **Organization** | Tags, favorites, archive, trash, and safe restore |
 | ✍️ **Editor Tools** | Undo/redo, find/replace, Markdown toolbar, and task lists |
 | 📎 **Attachments** | Copy files and images into managed per-note storage |
@@ -49,6 +52,7 @@
 - **Python 3.10+**
 - **PyQt6** (`pip install PyQt6`)
 - **markdown** (`pip install markdown`)
+- **PyYAML** (`pip install PyYAML`)
 
 ### Installation
 
@@ -101,7 +105,8 @@ Beer-Notes/
 │   │   └── settings_controller.py
 │   ├── storage/                # Data persistence layer
 │   │   ├── models.py           # Note & AppSettings dataclasses
-│   │   └── database.py         # JSON-file storage engine
+│   │   ├── database.py         # Markdown storage & legacy migration
+│   │   └── markdown_notes.py   # YAML front-matter codec
 │   ├── localization/           # i18n system
 │   │   ├── i18n.py             # Translation engine (Qt signals)
 │   │   ├── en.json             # English locale
@@ -161,6 +166,15 @@ Select from popular fonts (Inter, Roboto, Fira Code, JetBrains Mono, etc.) or ty
 ### Language
 Switch between **English** and **Türkçe** from `Extras → Preferences → General`. The entire UI updates instantly — no restart required.
 
+### Notes Directory
+Choose `Extras → Preferences → General → Notes Directory` to use an existing
+folder on another disk or shared partition. Beer Notes keeps `settings.json`
+under the normal XDG location and uses the selected folder only as the note
+source of truth. Existing directories are required deliberately: if a removable
+disk is unavailable, Beer Notes reports the problem instead of silently creating
+a second empty note collection. A hidden `.beernotes-directory` identity marker
+also detects a stale mount point that belongs to a different disk.
+
 ---
 
 ## 💾 Data Storage
@@ -171,12 +185,20 @@ All data is stored locally following XDG standards:
 ~/.local/share/beernotes/
 ├── settings.json            # Application preferences
 ├── notes/
-│   ├── <note_id>.json       # Individual note files
+│   ├── <note_id>.md         # Markdown + YAML front matter
 │   └── ...
+├── legacy-json-backup/
+│   └── default/             # Exact originals from the one-time migration
 └── attachments/             # Managed files grouped by note ID
 ```
 
-Notes are stored as individual JSON files, making them easy to back up, sync, or inspect.
+Each `.md` file is the source of truth and can be read or edited in any text
+editor. Its YAML block stores the title, tags, timestamps, pin and folder state,
+while the Markdown body contains the note itself. On the first launch after this
+update, legacy `notes/*.json` files are converted automatically; an exact copy
+is retained under a source-specific folder in `legacy-json-backup/` before any
+legacy file is removed. If a Markdown file was changed externally after Beer
+Notes loaded it, the next save is rejected instead of overwriting that edit.
 
 ---
 

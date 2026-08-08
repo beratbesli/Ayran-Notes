@@ -10,6 +10,7 @@ from PyQt6.QtWidgets import QApplication
 from beernotes.exporters import export_note
 from beernotes.importers import import_note
 from beernotes.storage.models import Note
+from beernotes.storage.markdown_notes import serialize_note
 
 
 class ImportTests(unittest.TestCase):
@@ -38,6 +39,24 @@ class ImportTests(unittest.TestCase):
             imported = import_note(path)
             self.assertEqual(imported.title, "Native")
             self.assertEqual(imported.folder, "Work")
+
+    def test_imports_stored_markdown_front_matter(self) -> None:
+        note = Note(
+            title="Portable",
+            content="Raw Markdown body",
+            folder="Shared",
+            tags=["plain", "yaml"],
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "portable.md"
+            path.write_text(serialize_note(note), encoding="utf-8")
+
+            imported = import_note(path)
+
+        self.assertEqual(imported.title, "Portable")
+        self.assertEqual(imported.content, "Raw Markdown body")
+        self.assertEqual(imported.folder, "Shared")
+        self.assertEqual(imported.tags, ["plain", "yaml"])
 
     def test_rejects_unsupported_files(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

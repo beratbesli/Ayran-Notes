@@ -9,7 +9,7 @@ import sys
 from importlib.resources import files
 
 from PyQt6.QtGui import QFont, QIcon
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication, QMessageBox
 
 from beernotes import __version__
 from beernotes.controllers.note_controller import NoteController
@@ -29,7 +29,16 @@ def main() -> None:
     )
 
     # --- Core services ---
-    storage = StorageEngine()
+    try:
+        storage = StorageEngine()
+    except (OSError, ValueError) as error:
+        QMessageBox.critical(
+            None,
+            "Beer Notes",
+            "The configured notes directory is unavailable.\n\n"
+            f"{error}",
+        )
+        return
     settings_ctrl = SettingsController(storage)
     note_ctrl = NoteController(storage)
     i18n = I18n(language=settings_ctrl.settings.language)

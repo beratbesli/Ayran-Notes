@@ -126,5 +126,10 @@
   "saved": "Saved",
   "save_failed": "Not saved",
   "save_failed_title": "Could Not Save Note",
-  "save_failed_close": "Beer Notes could not save your latest changes. The window will stay open so your text is not lost."
+  "save_failed_close": "Beer Notes could not save your latest changes. The window will stay open so your text is not lost.",
+  "notes_directory": "Notes Directory",
+  "browse": "Browse…",
+  "use_default": "Default",
+  "notes_directory_error": "Could Not Change Notes Directory",
+  "notes_directory_error_detail": "The selected directory could not be used: {error}"
 }

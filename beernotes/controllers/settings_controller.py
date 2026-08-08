@@ -6,6 +6,7 @@ settings change so the UI can react without a restart.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Optional
 
 from PyQt6.QtCore import QObject, pyqtSignal
@@ -23,10 +24,21 @@ class SettingsController(QObject):
         super().__init__(parent)
         self._storage = storage
         self._settings: AppSettings = self._storage.load_settings()
+        settings_updated = False
         if not self._settings.compact_window_migrated:
             self._settings.window_width = min(self._settings.window_width, 1000)
             self._settings.window_height = min(self._settings.window_height, 680)
             self._settings.compact_window_migrated = True
+            settings_updated = True
+        if (
+            self._storage.notes_dir != self._storage.default_notes_dir
+            and not self._settings.notes_directory_id
+        ):
+            self._settings.notes_directory_id = (
+                self._storage.ensure_notes_directory_identity()
+            )
+            settings_updated = True
+        if settings_updated:
             self._storage.save_settings(self._settings)
 
     # ------------------------------------------------------------------
@@ -37,6 +49,14 @@ class SettingsController(QObject):
     def settings(self) -> AppSettings:
         """Return the current in-memory settings object."""
         return self._settings
+
+    @property
+    def resolved_notes_directory(self) -> Path:
+        return self._storage.notes_dir
+
+    @property
+    def default_notes_directory(self) -> Path:
+        return self._storage.default_notes_dir
 
     # ------------------------------------------------------------------
     # Mutation helpers (apply + save + notify)
@@ -87,6 +107,32 @@ class SettingsController(QObject):
         self._settings.view_mode = mode
         self._apply()
 
+    def set_notes_directory(self, directory: Optional[str | Path]) -> None:
+        """Use an existing folder as the shared Markdown notes directory."""
+        previous_directory = self._storage.notes_dir
+        previous_setting = self._settings.notes_directory
+        previous_identity = self._settings.notes_directory_id
+        try:
+            resolved = self._storage.configure_notes_directory(directory)
+            self._settings.notes_directory = (
+                ""
+                if resolved == self._storage.default_notes_dir
+                else str(resolved)
+            )
+            self._settings.notes_directory_id = (
+                self._storage.ensure_notes_directory_identity()
+            )
+            self._storage.save_settings(self._settings)
+        except (OSError, ValueError):
+            self._settings.notes_directory = previous_setting
+            self._settings.notes_directory_id = previous_identity
+            self._storage.configure_notes_directory(
+                previous_directory,
+                expected_identity=previous_identity,
+            )
+            raise
+        self.settings_changed.emit(self._settings)
+
     def save_window_geometry(self, x: int, y: int, w: int, h: int) -> None:
         """Silently save window position and size (no broadcast)."""
         self._settings.window_x = x
@@ -102,10 +148,45 @@ class SettingsController(QObject):
 
     def reset_defaults(self) -> None:
         """Reset all settings to factory defaults."""
-        self._settings = AppSettings()
-        self._apply()
+        previous_settings = self._settings
+        previous_directory = self._storage.notes_dir
+        defaults = AppSettings()
+        try:
+            self._storage.configure_notes_directory(None)
+            self._storage.save_settings(defaults)
+        except (OSError, ValueError):
+            self._settings = previous_settings
+            self._storage.configure_notes_directory(
+                previous_directory,
+                expected_identity=previous_settings.notes_directory_id,
+            )
+            raise
+        self._settings = defaults
+        self.settings_changed.emit(self._settings)
 
     def reload(self) -> None:
         """Re-read settings from disk."""
-        self._settings = self._storage.load_settings()
+        loaded = self._storage.load_settings()
+        previous_directory = self._storage.notes_dir
+        previous_identity = self._settings.notes_directory_id
+        try:
+            self._storage.configure_notes_directory(
+                loaded.notes_directory,
+                expected_identity=loaded.notes_directory_id,
+            )
+            if (
+                self._storage.notes_dir != self._storage.default_notes_dir
+                and not loaded.notes_directory_id
+            ):
+                loaded.notes_directory_id = (
+                    self._storage.ensure_notes_directory_identity()
+                )
+                self._storage.save_settings(loaded)
+        except (OSError, ValueError):
+            self._storage.configure_notes_directory(
+                previous_directory,
+                expected_identity=previous_identity,
+            )
+            raise
+        self._settings = loaded
         self.settings_changed.emit(self._settings)

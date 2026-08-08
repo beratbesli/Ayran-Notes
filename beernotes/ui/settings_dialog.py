@@ -14,9 +14,12 @@ from PyQt6.QtWidgets import (
     QColorDialog,
     QComboBox,
     QDialog,
+    QFileDialog,
     QFormLayout,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
+    QMessageBox,
     QPushButton,
     QSpinBox,
     QTabWidget,
@@ -119,6 +122,22 @@ class SettingsDialog(QDialog):
         self._lang_label = QLabel()
         form_g.addRow(self._lang_label, self._lang_combo)
 
+        self._notes_dir_edit = QLineEdit()
+        self._notes_dir_edit.setReadOnly(True)
+        self._notes_dir_edit.setText(
+            str(self._ctrl.resolved_notes_directory)
+        )
+        self._notes_dir_browse = QPushButton()
+        self._notes_dir_default = QPushButton()
+        notes_dir_row = QHBoxLayout()
+        notes_dir_row.setContentsMargins(0, 0, 0, 0)
+        notes_dir_row.setSpacing(6)
+        notes_dir_row.addWidget(self._notes_dir_edit, 1)
+        notes_dir_row.addWidget(self._notes_dir_browse)
+        notes_dir_row.addWidget(self._notes_dir_default)
+        self._notes_dir_label = QLabel()
+        form_g.addRow(self._notes_dir_label, notes_dir_row)
+
         self._tabs.addTab(general, "")
 
         # ── Bottom buttons ──────────────────────────────────────────
@@ -144,6 +163,10 @@ class SettingsDialog(QDialog):
         self._font_combo.currentTextChanged.connect(self._on_font)
         self._size_spin.valueChanged.connect(self._on_font_size)
         self._lang_combo.currentIndexChanged.connect(self._on_language)
+        self._notes_dir_browse.clicked.connect(self._on_notes_directory)
+        self._notes_dir_default.clicked.connect(
+            self._on_default_notes_directory
+        )
         self._reset_btn.clicked.connect(self._on_reset)
         self._close_btn.clicked.connect(self.accept)
 
@@ -179,6 +202,34 @@ class SettingsDialog(QDialog):
         self._ctrl.set_language(lang)
         self._i18n.set_language(lang)
 
+    def _on_notes_directory(self) -> None:
+        directory = QFileDialog.getExistingDirectory(
+            self,
+            self._i18n.t("notes_directory"),
+            str(self._ctrl.resolved_notes_directory),
+        )
+        if directory:
+            self._apply_notes_directory(directory)
+
+    def _on_default_notes_directory(self) -> None:
+        self._apply_notes_directory(None)
+
+    def _apply_notes_directory(self, directory: str | None) -> None:
+        try:
+            self._ctrl.set_notes_directory(directory)
+        except (OSError, ValueError) as error:
+            QMessageBox.warning(
+                self,
+                self._i18n.t("notes_directory_error"),
+                self._i18n.t(
+                    "notes_directory_error_detail",
+                    error=str(error),
+                ),
+            )
+        self._notes_dir_edit.setText(
+            str(self._ctrl.resolved_notes_directory)
+        )
+
     def _on_reset(self) -> None:
         self._ctrl.reset_defaults()
         # Sync UI widgets with new defaults
@@ -187,6 +238,9 @@ class SettingsDialog(QDialog):
         self._font_combo.setCurrentText(s.font_family)
         self._size_spin.setValue(s.font_size)
         self._lang_combo.setCurrentIndex(self._lang_combo.findData(s.language))
+        self._notes_dir_edit.setText(
+            str(self._ctrl.resolved_notes_directory)
+        )
         self._update_accent_preview()
         self._i18n.set_language(s.language)
 
@@ -211,6 +265,9 @@ class SettingsDialog(QDialog):
         self._font_label.setText(t("font_family"))
         self._size_label.setText(t("font_size"))
         self._lang_label.setText(t("language"))
+        self._notes_dir_label.setText(t("notes_directory"))
+        self._notes_dir_browse.setText(t("browse"))
+        self._notes_dir_default.setText(t("use_default"))
         self._reset_btn.setText(t("reset_defaults"))
         self._close_btn.setText(t("close"))
         # Update theme combo display names

@@ -126,5 +126,10 @@
   "saved": "Kaydedildi",
   "save_failed": "Kaydedilemedi",
   "save_failed_title": "Not Kaydedilemedi",
-  "save_failed_close": "Beer Notes son değişikliklerini kaydedemedi. Metninin kaybolmaması için pencere açık tutulacak."
+  "save_failed_close": "Beer Notes son değişikliklerini kaydedemedi. Metninin kaybolmaması için pencere açık tutulacak.",
+  "notes_directory": "Notlar Dizini",
+  "browse": "Gözat…",
+  "use_default": "Varsayılan",
+  "notes_directory_error": "Notlar Dizini Değiştirilemedi",
+  "notes_directory_error_detail": "Seçilen dizin kullanılamadı: {error}"
 }
