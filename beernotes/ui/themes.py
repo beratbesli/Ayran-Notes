@@ -518,6 +518,19 @@ QPushButton#accentBtn:pressed {{
     background-color: {p["accent_pressed"]};
     border-color: {p["accent_pressed"]};
 }}
+QPushButton#zenExitButton {{
+    background-color: rgba(120, 120, 128, 0.25);
+    color: {p["text"]};
+    border: 1px solid {p["border"]};
+    border-radius: 14px;
+    padding: 6px 14px;
+    font-size: {size - 1}px;
+    font-weight: 500;
+}}
+QPushButton#zenExitButton:hover {{
+    background-color: rgba(120, 120, 128, 0.45);
+}}
+
 
 /* Editor and preview */
 #editorPane {{

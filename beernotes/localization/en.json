@@ -154,5 +154,7 @@
   "original_text": "Original",
   "ai_text": "AI Output",
   "apply": "Apply",
-  "zen_mode": "Zen Mode"
+  "zen_mode": "Zen Mode",
+  "exit_zen_mode": "Exit Zen Mode (Esc)"
 }
+

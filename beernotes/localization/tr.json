@@ -154,5 +154,7 @@
   "ai_result_title": "YZ Sonucu",
   "original_text": "Orijinal",
   "ai_text": "YZ Çıktısı",
-  "apply": "Uygula"
+  "apply": "Uygula",
+  "exit_zen_mode": "Zen Modundan Çık (Esc)"
 }
+

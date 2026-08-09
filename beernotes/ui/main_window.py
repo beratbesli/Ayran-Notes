@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Optional
 
 from PyQt6.QtCore import QSize, Qt, QTimer
-from PyQt6.QtGui import QAction, QActionGroup, QKeySequence, QTextCursor
+from PyQt6.QtGui import QAction, QActionGroup, QKeyEvent, QKeySequence, QShortcut, QTextCursor
 from PyQt6.QtWidgets import (
     QButtonGroup,
     QFileDialog,
@@ -259,6 +259,14 @@ class MainWindow(QMainWindow):
         self._statusbar.addWidget(self._save_state_label)
         self._statusbar.addPermanentWidget(self._word_label)
         self._statusbar.addPermanentWidget(self._char_label)
+
+        # ── Zen mode floating exit button ─────────────────────────
+        self._zen_exit_btn = QPushButton(self)
+        self._zen_exit_btn.setObjectName("zenExitButton")
+        self._zen_exit_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._zen_exit_btn.clicked.connect(self._exit_zen_mode)
+        self._zen_exit_btn.hide()
+
 
     def _build_simple_ui(self) -> None:
         """Build the distraction-free cards home and plain editor."""
@@ -655,6 +663,20 @@ class MainWindow(QMainWindow):
             lambda: self._change_view_mode("detailed")
         )
 
+        # Global shortcuts for Zen Mode (works when menuBar is hidden)
+        self._shortcut_zen1 = QShortcut(QKeySequence("F11"), self)
+        self._shortcut_zen1.setContext(Qt.ShortcutContext.ApplicationShortcut)
+        self._shortcut_zen1.activated.connect(self._toggle_zen_mode)
+
+        self._shortcut_zen2 = QShortcut(QKeySequence("Ctrl+Shift+Z"), self)
+        self._shortcut_zen2.setContext(Qt.ShortcutContext.ApplicationShortcut)
+        self._shortcut_zen2.activated.connect(self._toggle_zen_mode)
+
+        self._shortcut_esc = QShortcut(QKeySequence(Qt.Key.Key_Escape), self)
+        self._shortcut_esc.setContext(Qt.ShortcutContext.ApplicationShortcut)
+        self._shortcut_esc.activated.connect(self._on_escape_key)
+
+
     # ==================================================================
     # Translation
     # ==================================================================
@@ -709,7 +731,11 @@ class MainWindow(QMainWindow):
         self._act_sidebar.setText(t("toggle_sidebar"))
         self._act_preview.setText(t("toggle_preview"))
         self._act_zen_mode.setText(t("zen_mode"))
+        if hasattr(self, "_zen_exit_btn") and self._zen_exit_btn:
+            self._zen_exit_btn.setText("✕  " + t("exit_zen_mode", "Exit Zen Mode (Esc)"))
+            self._zen_exit_btn.adjustSize()
         self._extras_menu.setTitle(t("extras"))
+
         self._customize_toolbar_menu.setTitle(t("customize_toolbar"))
         self._act_reset_toolbar.setText(t("reset_toolbar"))
         for key, toggle in self._toolbar_toggle_actions.items():
@@ -1841,6 +1867,21 @@ class MainWindow(QMainWindow):
     def _on_toggle_preview(self, checked: bool) -> None:
         self._settings_ctrl.set_preview_visible(checked)
 
+    def _on_escape_key(self) -> None:
+        if self._in_zen_mode:
+            self._exit_zen_mode()
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        if self._in_zen_mode and event.key() in (Qt.Key.Key_Escape, Qt.Key.Key_F11):
+            self._exit_zen_mode()
+            return
+        super().keyPressEvent(event)
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        if hasattr(self, "_zen_exit_btn") and self._zen_exit_btn and self._zen_exit_btn.isVisible():
+            self._zen_exit_btn.move(max(10, self.width() - self._zen_exit_btn.width() - 25), 18)
+
     def _toggle_zen_mode(self) -> None:
         if self._in_zen_mode:
             self._exit_zen_mode()
@@ -1871,11 +1912,22 @@ class MainWindow(QMainWindow):
         self._editor_left_stretch.show()
         self._editor_right_stretch.show()
         
+        if hasattr(self, "_zen_exit_btn") and self._zen_exit_btn:
+            t = self._i18n.t
+            self._zen_exit_btn.setText("✕  " + t("exit_zen_mode", "Exit Zen Mode (Esc)"))
+            self._zen_exit_btn.adjustSize()
+            self._zen_exit_btn.move(max(10, self.width() - self._zen_exit_btn.width() - 25), 18)
+            self._zen_exit_btn.show()
+            self._zen_exit_btn.raise_()
+
         if not self.isFullScreen():
             self.showFullScreen()
 
     def _exit_zen_mode(self) -> None:
         self._in_zen_mode = False
+
+        if hasattr(self, "_zen_exit_btn") and self._zen_exit_btn:
+            self._zen_exit_btn.hide()
         
         # Restore widgets
         self._sidebar.setVisible(self._zen_pre_state.get("sidebar", True))
@@ -1894,6 +1946,7 @@ class MainWindow(QMainWindow):
                 self.showMaximized()
             else:
                 self.showNormal()
+
 
     # ==================================================================
     # Settings / About dialogs
