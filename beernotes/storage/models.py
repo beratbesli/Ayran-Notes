@@ -97,8 +97,8 @@ class Note:
 class AppSettings:
     """Persisted application settings."""
 
-    theme: str = "dark"               # "dark" | "light"
-    accent_color: str = "#F59E0B"     # amber/beer accent
+    theme: str = "system"             # "system" | "dark" | "light"
+    accent_color: str = ""            # empty means system accent
     font_family: str = "Inter"
     font_size: int = 14
     language: str = "en"              # "en" | "tr"
@@ -116,6 +116,10 @@ class AppSettings:
     notes_directory: str = ""
     notes_directory_id: str = ""
     compact_window_migrated: bool = False
+    main_splitter_sizes: list[int] = field(default_factory=list)
+    llm_api_url: str = ""
+    llm_api_key: str = ""
+    llm_model: str = ""
 
     def to_dict(self) -> dict:
         """Serialize to a plain dictionary."""
@@ -137,6 +141,10 @@ class AppSettings:
             "notes_directory": self.notes_directory,
             "notes_directory_id": self.notes_directory_id,
             "compact_window_migrated": self.compact_window_migrated,
+            "main_splitter_sizes": self.main_splitter_sizes,
+            "llm_api_url": self.llm_api_url,
+            "llm_api_key": self.llm_api_key,
+            "llm_model": self.llm_model,
         }
 
     @classmethod
@@ -154,4 +162,12 @@ class AppSettings:
             s.notes_directory = ""
         if not isinstance(s.notes_directory_id, str):
             s.notes_directory_id = ""
+        if not isinstance(s.main_splitter_sizes, list):
+            s.main_splitter_sizes = []
+        if not isinstance(s.llm_api_url, str):
+            s.llm_api_url = ""
+        if not isinstance(s.llm_api_key, str):
+            s.llm_api_key = ""
+        if not isinstance(s.llm_model, str):
+            s.llm_model = ""
         return s

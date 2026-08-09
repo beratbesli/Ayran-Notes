@@ -720,4 +720,70 @@ QToolTip {{
     padding: 5px 8px;
     font-size: {max(8, size - 2)}px;
 }}
+#commandPalette {{
+    background-color: {p["surface"]};
+    border: 1px solid {p["border"]};
+    border-radius: 12px;
+}}
+#commandPaletteSearch {{
+    min-height: 24px;
+    background-color: {p["raised"]};
+    color: {p["text"]};
+    border: 1px solid {p["border"]};
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: {size}px;
+    selection-background-color: {accent_selection};
+}}
+#commandPaletteSearch:focus {{
+    border-color: {accent};
+}}
+#commandPaletteList {{
+    background-color: transparent;
+    border: none;
+    outline: none;
+}}
+#commandPaletteList::item {{
+    color: {p["secondary"]};
+    background-color: transparent;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin: 2px;
+}}
+#commandPaletteList::item:hover {{
+    color: {p["text"]};
+    background-color: {p["hover"]};
+}}
+#commandPaletteList::item:selected {{
+    color: {accent_ink};
+    background-color: {accent_soft};
+}}
+
+/* Floating Toolbar */
+#floatingToolbar {{
+    background-color: {p["raised"]};
+    border: 1px solid {p["border"]};
+    border-radius: 8px;
+}}
+#floatingToolbar QPushButton {{
+    min-width: 26px;
+    min-height: 24px;
+    max-width: 26px;
+    max-height: 24px;
+    background-color: transparent;
+    color: {p["secondary"]};
+    border: none;
+    border-radius: 6px;
+    padding: 0;
+    margin: 0;
+    font-weight: 600;
+}}
+#floatingToolbar QPushButton:hover {{
+    background-color: {p["hover"]};
+    color: {p["text"]};
+}}
+#floatingToolbar QPushButton:pressed {{
+    background-color: {accent_soft};
+    color: {accent_ink};
+}}
 """

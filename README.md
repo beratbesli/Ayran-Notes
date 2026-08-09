@@ -90,6 +90,15 @@ run the installer again from its new location to update the shortcut. To remove 
 python3 install_shortcut.py --uninstall
 ```
 
+### AppImage (Portable)
+
+You can also build a portable AppImage that runs on most Linux distributions without installing dependencies:
+
+```bash
+./packaging/build_appimage.sh
+```
+The final executable will be located in the `dist/` directory.
+
 ---
 
 ## 🏗️ Project Structure

@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# Simple AppRun script for Beer Notes AppImage
+
+HERE="$(dirname "$(readlink -f "${0}")")"
+
+# Set environment variables for the application
+export PATH="${HERE}/usr/bin:${PATH}"
+export LD_LIBRARY_PATH="${HERE}/usr/lib:${LD_LIBRARY_PATH}"
+export PYTHONPATH="${HERE}/usr/bin:${PYTHONPATH}"
+export QT_PLUGIN_PATH="${HERE}/usr/bin/PyQt6/Qt6/plugins"
+
+# Execute the main binary
+exec "${HERE}/usr/bin/beernotes" "$@"

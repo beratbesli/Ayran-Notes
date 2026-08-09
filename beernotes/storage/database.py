@@ -27,6 +27,7 @@ from typing import List, Optional
 
 from beernotes.storage.models import AppSettings, Note
 from beernotes.storage.markdown_notes import deserialize_note, serialize_note
+from beernotes.storage.git_versioning import git_manager
 
 _NOTE_ID = re.compile(r"^[0-9a-f]{12}$")
 _NOTES_DIRECTORY_MARKER = ".beernotes-directory"
@@ -119,6 +120,7 @@ class StorageEngine:
         self.notes_dir = self._resolve_notes_directory(configured)
         self._ensure_dirs()
         self._migrate_legacy_json_notes()
+        git_manager.init_repo(self.notes_dir)
 
     # ------------------------------------------------------------------
     # Initialization
@@ -173,6 +175,7 @@ class StorageEngine:
         self._notes_directory_identity = expected_identity
         try:
             self._migrate_legacy_json_notes()
+            git_manager.init_repo(destination)
         except BaseException:
             self.notes_dir = previous_directory
             self._notes_directory_identity = previous_identity
@@ -421,6 +424,7 @@ class StorageEngine:
             serialized = serialize_note(note).encode("utf-8")
             _atomic_write_bytes(path, serialized)
             note._storage_revision = self._revision(serialized)
+            git_manager.schedule_commit(self.notes_dir, f"Update: {note.title}")
         except BaseException:
             note.updated_at = previous_updated_at
             note._storage_revision = previous_revision
@@ -434,8 +438,14 @@ class StorageEngine:
             return False
         self._validate_active_notes_directory()
         if path.exists():
+            title = note_id
+            try:
+                title = self._read_note_path(path).title
+            except BaseException:
+                pass
             path.unlink()
             shutil.rmtree(self.attachments_dir / note_id, ignore_errors=True)
+            git_manager.schedule_commit(self.notes_dir, f"Delete: {title}")
             return True
         return False
 

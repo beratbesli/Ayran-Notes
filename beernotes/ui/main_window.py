@@ -46,6 +46,9 @@ from beernotes.ui.markdown_support import (
 )
 from beernotes.ui.settings_dialog import SettingsDialog
 from beernotes.ui.themes import build_stylesheet
+from beernotes.ui.floating_toolbar import FloatingToolbar
+from beernotes.llm_provider import LLMProvider
+from beernotes.ui.llm_dialog import LLMResultDialog
 
 
 class MainWindow(QMainWindow):
@@ -67,6 +70,8 @@ class MainWindow(QMainWindow):
         self._current_folder: Optional[str] = None
         self._dirty = False
         self._simple_dirty = False
+        self._in_zen_mode = False
+        self._zen_pre_state: dict[str, bool] = {}
         self._save_timer = QTimer(self)
         self._save_timer.setSingleShot(True)
         self._save_timer.setInterval(600)  # auto-save 600ms after last keystroke
@@ -75,6 +80,11 @@ class MainWindow(QMainWindow):
         self._simple_save_timer.setSingleShot(True)
         self._simple_save_timer.setInterval(600)
         self._simple_save_timer.timeout.connect(self._auto_save_simple)
+
+        self._llm_provider = LLMProvider()
+        self._llm_provider.result_ready.connect(self._on_llm_result)
+        self._llm_provider.error_occurred.connect(self._on_llm_error)
+        self._current_llm_action = None
 
         self._build_ui()
         self._build_menus()
@@ -163,15 +173,25 @@ class MainWindow(QMainWindow):
         QTimer.singleShot(0, self._restore_sidebar_splitter)
         sidebar_layout.addWidget(self._sidebar_splitter, 1)
 
-        main_layout.addWidget(self._sidebar)
-
-        # ── Content splitter (editor | preview) ────────────────────
-        self._splitter = QSplitter(Qt.Orientation.Horizontal)
+        # ── Main Content Splitter (Sidebar | Editor | Preview) ────────────────────
+        self._main_splitter = QSplitter(Qt.Orientation.Horizontal)
+        self._main_splitter.setObjectName("mainSplitter")
+        self._main_splitter.setChildrenCollapsible(False)
+        
+        self._main_splitter.addWidget(self._sidebar)
 
         # Editor pane
-        editor_pane = QWidget()
-        editor_pane.setObjectName("editorPane")
-        editor_layout = QVBoxLayout(editor_pane)
+        self._editor_pane = QWidget()
+        self._editor_pane.setObjectName("editorPane")
+        editor_main_layout = QHBoxLayout(self._editor_pane)
+        editor_main_layout.setContentsMargins(0, 0, 0, 0)
+        editor_main_layout.setSpacing(0)
+        
+        self._editor_left_stretch = QWidget()
+        self._editor_right_stretch = QWidget()
+        self._editor_container = QWidget()
+        
+        editor_layout = QVBoxLayout(self._editor_container)
         editor_layout.setContentsMargins(20, 12, 20, 12)
         editor_layout.setSpacing(0)
 
@@ -191,6 +211,13 @@ class MainWindow(QMainWindow):
             s.theme,
         )
 
+        self._floating_toolbar_detailed = FloatingToolbar(
+            self._content_edit,
+            self._wrap_selection,
+            self._i18n,
+            self
+        )
+
         self._editor_toolbar = QToolBar()
         self._editor_toolbar.setObjectName("editorToolbar")
         self._editor_toolbar.setMovable(False)
@@ -198,18 +225,26 @@ class MainWindow(QMainWindow):
         editor_layout.addWidget(self._editor_toolbar)
         editor_layout.addWidget(self._content_edit, 1)
 
-        self._splitter.addWidget(editor_pane)
+        editor_main_layout.addWidget(self._editor_left_stretch, 1)
+        editor_main_layout.addWidget(self._editor_container, 4)
+        editor_main_layout.addWidget(self._editor_right_stretch, 1)
+        self._editor_left_stretch.hide()
+        self._editor_right_stretch.hide()
+
+        self._main_splitter.addWidget(self._editor_pane)
 
         # Preview pane
         self._preview = QTextBrowser()
         self._preview.setObjectName("previewPanel")
         self._preview.setOpenExternalLinks(True)
-        self._splitter.addWidget(self._preview)
+        self._main_splitter.addWidget(self._preview)
 
-        self._splitter.setStretchFactor(0, 3)
-        self._splitter.setStretchFactor(1, 2)
+        self._main_splitter.setStretchFactor(0, 1)
+        self._main_splitter.setStretchFactor(1, 3)
+        self._main_splitter.setStretchFactor(2, 2)
+        QTimer.singleShot(0, self._restore_main_splitter)
 
-        main_layout.addWidget(self._splitter, 1)
+        main_layout.addWidget(self._main_splitter, 1)
 
         self._build_simple_ui()
         self._build_navigation_bar()
@@ -324,6 +359,13 @@ class MainWindow(QMainWindow):
             self._simple_content.document(),
             self._settings_ctrl.settings.theme,
         )
+
+        self._floating_toolbar_simple = FloatingToolbar(
+            self._simple_content,
+            self._wrap_selection,
+            self._i18n,
+            self
+        )
         editor_layout.addWidget(self._simple_content, 1)
         self._simple_stack.addWidget(self._simple_editor)
 
@@ -383,6 +425,12 @@ class MainWindow(QMainWindow):
             max(80, available - 100),
         )
         self._sidebar_splitter.setSizes([folder_height, available - folder_height])
+
+    def _restore_main_splitter(self) -> None:
+        """Restore the main splitter sizes from settings."""
+        sizes = self._settings_ctrl.settings.main_splitter_sizes
+        if sizes and len(sizes) == 3:
+            self._main_splitter.setSizes(sizes)
 
     def _build_editor_toolbar(self) -> None:
         """Create compact Markdown and attachment actions."""
@@ -471,6 +519,21 @@ class MainWindow(QMainWindow):
         self._act_replace.triggered.connect(self._replace_text)
         self._edit_menu.addAction(self._act_replace)
 
+        # AI
+        self._ai_menu = mb.addMenu("")
+        self._act_ai_summarize = QAction(self)
+        self._act_ai_summarize.triggered.connect(lambda: self._trigger_llm("summarize"))
+        self._ai_menu.addAction(self._act_ai_summarize)
+        self._act_ai_improve = QAction(self)
+        self._act_ai_improve.triggered.connect(lambda: self._trigger_llm("improve"))
+        self._ai_menu.addAction(self._act_ai_improve)
+        self._act_ai_fix = QAction(self)
+        self._act_ai_fix.triggered.connect(lambda: self._trigger_llm("fix"))
+        self._ai_menu.addAction(self._act_ai_fix)
+        self._act_ai_continue = QAction(self)
+        self._act_ai_continue.triggered.connect(lambda: self._trigger_llm("continue"))
+        self._ai_menu.addAction(self._act_ai_continue)
+
         # View and mode
         self._view_menu = mb.addMenu("")
         self._mode_group = QActionGroup(self)
@@ -503,6 +566,12 @@ class MainWindow(QMainWindow):
         self._act_preview.setChecked(self._settings_ctrl.settings.preview_visible)
         self._act_preview.triggered.connect(self._on_toggle_preview)
         self._view_menu.addAction(self._act_preview)
+
+        self._view_menu.addSeparator()
+        self._act_zen_mode = QAction(self)
+        self._act_zen_mode.setShortcuts([QKeySequence("F11"), QKeySequence("Ctrl+Shift+Z")])
+        self._act_zen_mode.triggered.connect(self._toggle_zen_mode)
+        self._view_menu.addAction(self._act_zen_mode)
 
         # Extras / customizable editor toolbar
         self._extras_menu = mb.addMenu("")
@@ -629,11 +698,17 @@ class MainWindow(QMainWindow):
         self._act_redo.setText(t("redo"))
         self._act_find.setText(t("find"))
         self._act_replace.setText(t("replace"))
+        self._ai_menu.setTitle(t("ai_menu", "AI"))
+        self._act_ai_summarize.setText(t("ai_summarize", "Summarize Selection"))
+        self._act_ai_improve.setText(t("ai_improve", "Improve Writing"))
+        self._act_ai_fix.setText(t("ai_fix", "Fix Code"))
+        self._act_ai_continue.setText(t("ai_continue", "Continue Writing"))
         self._act_simple_mode.setText(t("simple_mode"))
         self._act_detailed_mode.setText(t("detailed_mode"))
         self._view_menu.setTitle(t("view"))
         self._act_sidebar.setText(t("toggle_sidebar"))
         self._act_preview.setText(t("toggle_preview"))
+        self._act_zen_mode.setText(t("zen_mode"))
         self._extras_menu.setTitle(t("extras"))
         self._customize_toolbar_menu.setTitle(t("customize_toolbar"))
         self._act_reset_toolbar.setText(t("reset_toolbar"))
@@ -653,10 +728,12 @@ class MainWindow(QMainWindow):
     # ==================================================================
 
     def _apply_settings(self, s: AppSettings) -> None:
-        qss = build_stylesheet(s.theme, s.accent_color, s.font_family, s.font_size)
+        theme = self._settings_ctrl.resolved_theme
+        accent = self._settings_ctrl.resolved_accent_color
+        qss = build_stylesheet(theme, accent, s.font_family, s.font_size)
         self.setStyleSheet(qss)
-        self._content_highlighter.set_theme(s.theme)
-        self._simple_content_highlighter.set_theme(s.theme)
+        self._content_highlighter.set_theme(theme)
+        self._simple_content_highlighter.set_theme(theme)
         self._sidebar.setVisible(s.sidebar_visible)
         self._act_sidebar.setChecked(s.sidebar_visible)
         self._preview.setVisible(s.preview_visible)
@@ -664,6 +741,66 @@ class MainWindow(QMainWindow):
         self._sync_toolbar_visibility(s.toolbar_actions)
         self._show_view_mode(s.view_mode)
         self._update_preview()
+        
+        self._llm_provider.api_url = s.llm_api_url
+        self._llm_provider.api_key = s.llm_api_key
+        self._llm_provider.model_name = s.llm_model
+        ai_enabled = bool(s.llm_api_url)
+        self._ai_menu.setEnabled(ai_enabled)
+        
+    def _trigger_llm(self, action_type: str) -> None:
+        editor = self._simple_content if self._simple_editor_is_active() else self._content_edit
+        cursor = editor.textCursor()
+        
+        if cursor.hasSelection():
+            text = cursor.selectedText().replace("\u2029", "\n")
+        else:
+            text = editor.toPlainText()
+            
+        if not text.strip():
+            return
+            
+        self._current_llm_action = action_type
+        
+        # We need a progress dialog or some feedback here, but for now we just show a message or status
+        self._statusbar.showMessage("Running AI...", 0)
+        
+        if action_type == "summarize":
+            self._llm_provider.run_async(f"Please summarize the following text:\n\n{text}", "You are a helpful assistant that summarizes text concisely.")
+        elif action_type == "improve":
+            self._llm_provider.run_async(f"Improve the following text:\n\n{text}", "You are an expert editor. Improve the grammar, clarity, and flow of the text. Output ONLY the improved text.")
+        elif action_type == "fix":
+            self._llm_provider.run_async(f"Fix the following code:\n\n{text}", "You are an expert programmer. Fix the bugs and formatting in the provided code. Output ONLY the fixed code without any conversational text or markdown blocks if not necessary.")
+        elif action_type == "continue":
+            self._llm_provider.run_async(f"Please continue the following text in the same style and tone:\n\n{text}", "You are a helpful assistant that continues the writing seamlessly.")
+
+    def _on_llm_result(self, result: str) -> None:
+        self._statusbar.clearMessage()
+        editor = self._simple_content if self._simple_editor_is_active() else self._content_edit
+        cursor = editor.textCursor()
+        
+        original_text = ""
+        if cursor.hasSelection():
+            original_text = cursor.selectedText().replace("\u2029", "\n")
+        else:
+            original_text = editor.toPlainText()
+
+        dialog = LLMResultDialog(original_text, result, self._i18n, self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            new_text = dialog.new_text
+            if cursor.hasSelection():
+                cursor.insertText(new_text)
+            else:
+                if self._current_llm_action == "continue":
+                    cursor.movePosition(QTextCursor.MoveOperation.End)
+                    cursor.insertText("\n" + new_text)
+                else:
+                    editor.setPlainText(new_text)
+            self._schedule_save()
+
+    def _on_llm_error(self, error: str) -> None:
+        self._statusbar.clearMessage()
+        QMessageBox.warning(self, "AI Error", f"An error occurred:\n{error}")
 
     def _set_toolbar_action_visible(self, key: str, visible: bool) -> None:
         """Add or remove a tool from the compact editor toolbar."""
@@ -1704,6 +1841,60 @@ class MainWindow(QMainWindow):
     def _on_toggle_preview(self, checked: bool) -> None:
         self._settings_ctrl.set_preview_visible(checked)
 
+    def _toggle_zen_mode(self) -> None:
+        if self._in_zen_mode:
+            self._exit_zen_mode()
+        else:
+            self._enter_zen_mode()
+
+    def _enter_zen_mode(self) -> None:
+        if self._view_stack.currentWidget() is not self._detailed_view:
+            self._change_view_mode("detailed")
+            
+        self._in_zen_mode = True
+        self._zen_pre_state = {
+            "sidebar": self._settings_ctrl.settings.sidebar_visible,
+            "toolbar": self._settings_ctrl.settings.toolbar_actions,
+            "preview": self._settings_ctrl.settings.preview_visible,
+            "fullscreen": self.isFullScreen(),
+            "maximized": self.isMaximized(),
+        }
+        
+        self._sidebar.setVisible(False)
+        self._editor_toolbar.setVisible(False)
+        self._preview.setVisible(False)
+        self.menuBar().setVisible(False)
+        self._navigation_bar.setVisible(False)
+        self._statusbar.setVisible(False)
+        
+        self._editor_container.setMaximumWidth(800)
+        self._editor_left_stretch.show()
+        self._editor_right_stretch.show()
+        
+        if not self.isFullScreen():
+            self.showFullScreen()
+
+    def _exit_zen_mode(self) -> None:
+        self._in_zen_mode = False
+        
+        # Restore widgets
+        self._sidebar.setVisible(self._zen_pre_state.get("sidebar", True))
+        self._sync_toolbar_visibility(self._zen_pre_state.get("toolbar", []))
+        self._preview.setVisible(self._zen_pre_state.get("preview", True))
+        self.menuBar().setVisible(True)
+        self._navigation_bar.setVisible(True)
+        self._statusbar.setVisible(True)
+        
+        self._editor_container.setMaximumWidth(16777215) # Default max size
+        self._editor_left_stretch.hide()
+        self._editor_right_stretch.hide()
+        
+        if not self._zen_pre_state.get("fullscreen", False):
+            if self._zen_pre_state.get("maximized", False):
+                self.showMaximized()
+            else:
+                self.showNormal()
+
     # ==================================================================
     # Settings / About dialogs
     # ==================================================================
@@ -1752,4 +1943,5 @@ class MainWindow(QMainWindow):
         )
         self._settings_ctrl.save_window_geometry(g.x(), g.y(), g.width(), g.height())
         self._settings_ctrl.save_sidebar_folder_height(self._sidebar_splitter.sizes()[0])
+        self._settings_ctrl.save_main_splitter_sizes(self._main_splitter.sizes())
         super().closeEvent(event)

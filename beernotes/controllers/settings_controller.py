@@ -13,6 +13,7 @@ from PyQt6.QtCore import QObject, pyqtSignal
 
 from beernotes.storage.database import StorageEngine
 from beernotes.storage.models import AppSettings
+from beernotes.ui.system_theme import SystemThemeMonitor
 
 
 class SettingsController(QObject):
@@ -24,6 +25,9 @@ class SettingsController(QObject):
         super().__init__(parent)
         self._storage = storage
         self._settings: AppSettings = self._storage.load_settings()
+        self._system_theme_monitor = SystemThemeMonitor(self)
+        self._system_theme_monitor.system_theme_changed.connect(self._on_system_theme_changed)
+        self._system_theme_monitor.system_accent_changed.connect(self._on_system_accent_changed)
         settings_updated = False
         if not self._settings.compact_window_migrated:
             self._settings.window_width = min(self._settings.window_width, 1000)
@@ -51,6 +55,20 @@ class SettingsController(QObject):
         return self._settings
 
     @property
+    def resolved_theme(self) -> str:
+        """Return 'dark' or 'light' resolving 'system' theme."""
+        if self._settings.theme == "system":
+            return self._system_theme_monitor.get_system_theme()
+        return self._settings.theme
+
+    @property
+    def resolved_accent_color(self) -> str:
+        """Return the hex accent color resolving system defaults."""
+        if not self._settings.accent_color:
+            return self._system_theme_monitor.get_system_accent_color()
+        return self._settings.accent_color
+
+    @property
     def resolved_notes_directory(self) -> Path:
         return self._storage.notes_dir
 
@@ -66,6 +84,14 @@ class SettingsController(QObject):
         """Persist and broadcast the current settings."""
         self._storage.save_settings(self._settings)
         self.settings_changed.emit(self._settings)
+
+    def _on_system_theme_changed(self, theme: str) -> None:
+        if self._settings.theme == "system":
+            self.settings_changed.emit(self._settings)
+
+    def _on_system_accent_changed(self, color: str) -> None:
+        if not self._settings.accent_color:
+            self.settings_changed.emit(self._settings)
 
     def set_theme(self, theme: str) -> None:
         self._settings.theme = theme
@@ -98,6 +124,18 @@ class SettingsController(QObject):
     def set_toolbar_actions(self, actions: list[str]) -> None:
         """Persist the ordered set of tools shown above the editor."""
         self._settings.toolbar_actions = list(dict.fromkeys(actions))
+        self._apply()
+
+    def set_llm_api_url(self, url: str) -> None:
+        self._settings.llm_api_url = url
+        self._apply()
+
+    def set_llm_api_key(self, key: str) -> None:
+        self._settings.llm_api_key = key
+        self._apply()
+
+    def set_llm_model(self, model: str) -> None:
+        self._settings.llm_model = model
         self._apply()
 
     def set_view_mode(self, mode: str) -> None:
@@ -144,6 +182,11 @@ class SettingsController(QObject):
     def save_sidebar_folder_height(self, height: int) -> None:
         """Silently persist the user-selected sidebar section height."""
         self._settings.sidebar_folder_height = max(80, height)
+        self._storage.save_settings(self._settings)
+
+    def save_main_splitter_sizes(self, sizes: list[int]) -> None:
+        """Silently persist the main splitter sizes."""
+        self._settings.main_splitter_sizes = sizes
         self._storage.save_settings(self._settings)
 
     def reset_defaults(self) -> None:

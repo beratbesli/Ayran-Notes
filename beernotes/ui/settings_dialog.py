@@ -71,6 +71,7 @@ class SettingsDialog(QDialog):
 
         # Theme
         self._theme_combo = QComboBox()
+        self._theme_combo.addItem("System", "system")
         self._theme_combo.addItem("Dark", "dark")
         self._theme_combo.addItem("Light", "light")
         idx = self._theme_combo.findData(self._ctrl.settings.theme)
@@ -82,9 +83,16 @@ class SettingsDialog(QDialog):
         # Accent color
         self._accent_btn = QPushButton()
         self._accent_btn.setFixedSize(80, 32)
+        self._accent_reset_btn = QPushButton()
+        accent_row = QHBoxLayout()
+        accent_row.setContentsMargins(0, 0, 0, 0)
+        accent_row.setSpacing(8)
+        accent_row.addWidget(self._accent_btn)
+        accent_row.addWidget(self._accent_reset_btn)
+        accent_row.addStretch()
         self._update_accent_preview()
         self._accent_label = QLabel()
-        form_a.addRow(self._accent_label, self._accent_btn)
+        form_a.addRow(self._accent_label, accent_row)
 
         # Font family
         self._font_combo = QComboBox()
@@ -139,6 +147,34 @@ class SettingsDialog(QDialog):
         form_g.addRow(self._notes_dir_label, notes_dir_row)
 
         self._tabs.addTab(general, "")
+        
+        # ── AI / LLM tab ─────────────────────────────────────────────
+        llm = QWidget()
+        form_l = QFormLayout(llm)
+        form_l.setContentsMargins(16, 16, 16, 16)
+        form_l.setSpacing(14)
+        
+        self._llm_privacy_label = QLabel()
+        self._llm_privacy_label.setWordWrap(True)
+        form_l.addRow(self._llm_privacy_label)
+        
+        self._llm_api_url_edit = QLineEdit()
+        self._llm_api_url_edit.setText(self._ctrl.settings.llm_api_url)
+        self._llm_api_url_label = QLabel()
+        form_l.addRow(self._llm_api_url_label, self._llm_api_url_edit)
+        
+        self._llm_api_key_edit = QLineEdit()
+        self._llm_api_key_edit.setEchoMode(QLineEdit.EchoMode.Password)
+        self._llm_api_key_edit.setText(self._ctrl.settings.llm_api_key)
+        self._llm_api_key_label = QLabel()
+        form_l.addRow(self._llm_api_key_label, self._llm_api_key_edit)
+        
+        self._llm_model_edit = QLineEdit()
+        self._llm_model_edit.setText(self._ctrl.settings.llm_model)
+        self._llm_model_label = QLabel()
+        form_l.addRow(self._llm_model_label, self._llm_model_edit)
+        
+        self._tabs.addTab(llm, "")
 
         # ── Bottom buttons ──────────────────────────────────────────
         btn_row = QHBoxLayout()
@@ -160,6 +196,7 @@ class SettingsDialog(QDialog):
     def _connect_signals(self) -> None:
         self._theme_combo.currentIndexChanged.connect(self._on_theme)
         self._accent_btn.clicked.connect(self._on_accent_pick)
+        self._accent_reset_btn.clicked.connect(self._on_accent_reset)
         self._font_combo.currentTextChanged.connect(self._on_font)
         self._size_spin.valueChanged.connect(self._on_font_size)
         self._lang_combo.currentIndexChanged.connect(self._on_language)
@@ -167,6 +204,9 @@ class SettingsDialog(QDialog):
         self._notes_dir_default.clicked.connect(
             self._on_default_notes_directory
         )
+        self._llm_api_url_edit.textChanged.connect(self._on_llm_api_url)
+        self._llm_api_key_edit.textChanged.connect(self._on_llm_api_key)
+        self._llm_model_edit.textChanged.connect(self._on_llm_model)
         self._reset_btn.clicked.connect(self._on_reset)
         self._close_btn.clicked.connect(self.accept)
 
@@ -182,13 +222,17 @@ class SettingsDialog(QDialog):
 
     def _on_accent_pick(self) -> None:
         color = QColorDialog.getColor(
-            QColor(self._ctrl.settings.accent_color),
+            QColor(self._ctrl.resolved_accent_color),
             self,
             self._i18n.t("accent_color"),
         )
         if color.isValid():
             self._ctrl.set_accent_color(color.name())
             self._update_accent_preview()
+
+    def _on_accent_reset(self) -> None:
+        self._ctrl.set_accent_color("")
+        self._update_accent_preview()
 
     def _on_font(self, family: str) -> None:
         if family:
@@ -230,6 +274,15 @@ class SettingsDialog(QDialog):
             str(self._ctrl.resolved_notes_directory)
         )
 
+    def _on_llm_api_url(self, text: str) -> None:
+        self._ctrl.set_llm_api_url(text)
+
+    def _on_llm_api_key(self, text: str) -> None:
+        self._ctrl.set_llm_api_key(text)
+
+    def _on_llm_model(self, text: str) -> None:
+        self._ctrl.set_llm_model(text)
+
     def _on_reset(self) -> None:
         self._ctrl.reset_defaults()
         # Sync UI widgets with new defaults
@@ -241,6 +294,9 @@ class SettingsDialog(QDialog):
         self._notes_dir_edit.setText(
             str(self._ctrl.resolved_notes_directory)
         )
+        self._llm_api_url_edit.setText(s.llm_api_url)
+        self._llm_api_key_edit.setText(s.llm_api_key)
+        self._llm_model_edit.setText(s.llm_model)
         self._update_accent_preview()
         self._i18n.set_language(s.language)
 
@@ -249,7 +305,7 @@ class SettingsDialog(QDialog):
     # ------------------------------------------------------------------
 
     def _update_accent_preview(self) -> None:
-        c = self._ctrl.settings.accent_color
+        c = self._ctrl.resolved_accent_color
         self._accent_btn.setStyleSheet(
             f"background-color: {c}; border: none; border-radius: 6px;"
         )
@@ -268,8 +324,17 @@ class SettingsDialog(QDialog):
         self._notes_dir_label.setText(t("notes_directory"))
         self._notes_dir_browse.setText(t("browse"))
         self._notes_dir_default.setText(t("use_default"))
+        
+        self._tabs.setTabText(2, t("ai_settings"))
+        self._llm_privacy_label.setText(t("llm_privacy_warning"))
+        self._llm_api_url_label.setText(t("llm_api_url"))
+        self._llm_api_key_label.setText(t("llm_api_key"))
+        self._llm_model_label.setText(t("llm_model"))
+        
         self._reset_btn.setText(t("reset_defaults"))
         self._close_btn.setText(t("close"))
+        self._accent_reset_btn.setText(t("use_default"))
         # Update theme combo display names
-        self._theme_combo.setItemText(0, t("dark_mode"))
-        self._theme_combo.setItemText(1, t("light_mode"))
+        self._theme_combo.setItemText(0, t("system_theme"))
+        self._theme_combo.setItemText(1, t("dark_mode"))
+        self._theme_combo.setItemText(2, t("light_mode"))

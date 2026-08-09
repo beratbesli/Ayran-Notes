@@ -29,6 +29,7 @@ dependencies = [
 
 [project.scripts]
 beernotes = "beernotes.main:main"
+beernotes-cli = "beernotes.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
