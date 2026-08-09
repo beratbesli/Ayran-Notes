@@ -1320,8 +1320,9 @@ class MainWindow(QMainWindow):
         self._tag_edit.blockSignals(False)
         self._content_edit.blockSignals(False)
         self._dirty = False
-        self._update_preview()
+        self._update_preview(reset_scroll=True)
         self._update_status()
+
 
     def _on_new_note(self) -> None:
         if self._view_stack.currentWidget() is self._simple_view:
@@ -1814,7 +1815,15 @@ class MainWindow(QMainWindow):
     # Preview & Status
     # ==================================================================
 
-    def _update_preview(self) -> None:
+    def _update_preview(self, reset_scroll: bool = False) -> None:
+        if not hasattr(self, "_preview") or not self._preview.isVisible():
+            return
+
+        v_bar = self._preview.verticalScrollBar()
+        h_bar = self._preview.horizontalScrollBar()
+        v_pos = 0 if reset_scroll else v_bar.value()
+        h_pos = 0 if reset_scroll else h_bar.value()
+
         text = self._content_edit.toPlainText()
         if self._current_note and self._current_note.is_markdown:
             settings = self._settings_ctrl.settings
@@ -1827,6 +1836,12 @@ class MainWindow(QMainWindow):
             ))
         else:
             self._preview.setPlainText(text)
+
+        if not reset_scroll:
+            v_bar.setValue(v_pos)
+            h_bar.setValue(h_pos)
+            QTimer.singleShot(0, lambda: (v_bar.setValue(v_pos), h_bar.setValue(h_pos)))
+
 
     def _set_save_state(self, key: str) -> None:
         self._save_state_key = key

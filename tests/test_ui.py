@@ -507,6 +507,19 @@ class MainWindowTests(unittest.TestCase):
         self.assertTrue(self.window._dirty)
         self.assertTrue(self.window._flush_pending_save())
 
+    def test_preview_scroll_position_preserved_on_edit(self) -> None:
+        note = self.notes.create_note("Long Note")
+        note.content = "line\n" * 100
+        self.notes.save_note(note)
+        self.window._load_note(note)
+        self.window._preview.verticalScrollBar().setValue(50)
+        initial_scroll = self.window._preview.verticalScrollBar().value()
+        self.window._content_edit.setPlainText("line\n" * 105)
+        # _update_preview should keep scroll position
+        self.assertEqual(self.window._preview.verticalScrollBar().value(), initial_scroll)
+
+
 
 if __name__ == "__main__":
     unittest.main()
+
