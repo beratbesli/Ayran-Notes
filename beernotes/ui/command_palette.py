@@ -1,4 +1,4 @@
-from typing import Callable, List, Tuple
+from typing import Callable, List, Optional, Tuple
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QKeyEvent
@@ -15,7 +15,7 @@ class CommandPalette(QDialog):
 
     def __init__(
         self,
-        commands: List[Tuple[str, Callable[[], None]]],
+        commands: Optional[List[Tuple[str, Callable[[], None]]]] = None,
         parent=None,
     ) -> None:
         super().__init__(parent)
@@ -26,7 +26,7 @@ class CommandPalette(QDialog):
         self.setObjectName("commandPalette")
         self.resize(500, 350)
 
-        self._all_commands = commands
+        self._all_commands = commands or []
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(12, 12, 12, 12)
@@ -40,9 +40,18 @@ class CommandPalette(QDialog):
         self.list_widget = QListWidget()
         self.list_widget.setObjectName("commandPaletteList")
         self.list_widget.itemClicked.connect(self._execute_selected)
+        self._list = self.list_widget
         layout.addWidget(self.list_widget)
 
         self._populate_list(self._all_commands)
+
+    def set_commands(self, commands: List[Tuple[str, Callable[[], None]]]) -> None:
+        self._all_commands = commands
+        self._populate_list(commands)
+
+    def set_theme(self, theme: str) -> None:
+        pass
+
 
     def set_placeholder(self, text: str) -> None:
         """Set the placeholder text for the search input."""

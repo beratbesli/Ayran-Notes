@@ -69,22 +69,25 @@ class I18n(QObject):
         self._strings = self._load(lang)
         self.language_changed.emit(lang)
 
-    def t(self, key: str, **kwargs) -> str:
+    def t(self, key: str, default: Optional[str] = None, **kwargs) -> str:
         """Translate *key* into the active language.
 
         Supports Python-style ``str.format`` placeholders::
 
             i18n.t("notes_count", count=42)  # → "42 notes"
 
-        Returns the raw key if no translation is found.
+        Returns *default* or the raw key if no translation is found.
         """
-        text = self._strings.get(key, key)
+        text = self._strings.get(key)
+        if text is None:
+            text = default if default is not None else key
         if kwargs:
             try:
                 text = text.format(**kwargs)
             except (KeyError, IndexError):
                 pass
         return text
+
 
     # ------------------------------------------------------------------
     # Internal helpers

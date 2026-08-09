@@ -35,10 +35,23 @@ class GitVersioning:
                 check=True,
                 capture_output=True
             )
+            subprocess.run(
+                ["git", "config", "user.name", "Beer Notes"],
+                cwd=notes_dir,
+                check=False,
+                capture_output=True
+            )
+            subprocess.run(
+                ["git", "config", "user.email", "beernotes@local"],
+                cwd=notes_dir,
+                check=False,
+                capture_output=True
+            )
             return True
         except (subprocess.SubprocessError, FileNotFoundError) as e:
             logger.error(f"Failed to initialize git repository: {e}")
             return False
+
 
     def commit_change(self, notes_dir: Path, message: str) -> bool:
         """Commit changes in the notes directory."""
