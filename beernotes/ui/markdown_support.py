@@ -255,13 +255,17 @@ def render_markdown_html(
     if normalized_theme == "light":
         foreground = "#1D1D1F"
         background = "#FAFAFC"
-        code_background = "#EFEFF2"
+        code_background = "#F0F0F4"
+        code_color = "#24292F"
+        code_border = "#E1E4E8"
         secondary = "#6E6E73"
         border = "#D7D7DC"
     else:
         foreground = "#F5F5F7"
         background = "#1F1F21"
         code_background = "#2A2A2D"
+        code_color = "#F5F5F7"
+        code_border = "#3A3A3C"
         secondary = "#AEAEB2"
         border = "#3A3A3C"
 
@@ -272,17 +276,18 @@ def render_markdown_html(
         body {{ color: {foreground}; background: {background}; font-family: "{safe_font}", sans-serif; font-size: {size}px; line-height: 1.7; padding: 8px; }}
         h1, h2, h3 {{ color: {safe_accent}; margin-top: 16px; }}
         a {{ color: {safe_accent}; }}
-        code {{ background: {code_background}; padding: 2px 6px; border-radius: 4px; font-family: "Fira Code", monospace; font-size: {max(8, size - 1)}px; }}
-        .highlight {{ background: {code_background}; border-radius: 8px; }}
-        .highlight pre {{ background: transparent; padding: 12px; margin: 0; white-space: pre-wrap; }}
-        .highlight code {{ background: transparent; padding: 0; }}
+        code {{ color: {code_color}; background-color: {code_background}; border: 1px solid {code_border}; padding: 2px 6px; border-radius: 4px; font-family: "Fira Code", monospace; font-size: {max(8, size - 1)}px; }}
+        .highlight {{ background-color: {code_background}; border: 1px solid {code_border}; border-radius: 8px; }}
+        .highlight pre {{ background-color: transparent; padding: 12px; margin: 0; white-space: pre-wrap; }}
+        .highlight code {{ color: inherit; background-color: transparent; border: none; padding: 0; }}
         blockquote {{ border-left: 3px solid {safe_accent}; padding-left: 12px; color: {secondary}; margin: 8px 0; }}
         table {{ border-collapse: collapse; width: 100%; }}
         th, td {{ border: 1px solid {border}; padding: 8px; text-align: left; }}
-        th {{ background: {code_background}; }}
+        th {{ background-color: {code_background}; }}
         li.task-item {{ list-style: none; margin-left: -20px; }}
         span.task-box {{ color: {safe_accent}; margin-right: 7px; }}
         hr {{ border: none; border-top: 1px solid {border}; margin: 16px 0; }}
     </style>
     {body}
     """
+

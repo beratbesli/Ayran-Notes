@@ -97,7 +97,8 @@ class MarkdownSupportTests(unittest.TestCase):
 
         self.assertNotEqual(dark, light)
         self.assertIn("#2A2A2D", dark)
-        self.assertIn("#EFEFF2", light)
+        self.assertIn("#F0F0F4", light)
+
 
 
 if __name__ == "__main__":
