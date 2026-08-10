@@ -10,9 +10,8 @@ from pathlib import Path
 
 from PyQt6.QtGui import QTextDocument
 
-from beernotes.storage.models import Note
 from beernotes.storage.markdown_notes import deserialize_note
-
+from beernotes.storage.models import Note
 
 SUPPORTED_SUFFIXES = {".md", ".markdown", ".txt", ".html", ".htm", ".json"}
 
@@ -91,7 +90,7 @@ def import_note(path: Path) -> ImportedNote:
         title, tags, lines = _consume_metadata(raw.splitlines(), fallback_title)
         return ImportedNote(title, "\n".join(lines).rstrip(), tags, is_markdown=False)
 
-    title_match = re.search(r"<title\b[^>]*>(.*?)</title>", raw, re.I | re.S)
+    title_match = re.search(r"<title\b[^>]*>(.*?)</title>", raw, re.IGNORECASE | re.DOTALL)
     title = (
         html.unescape(re.sub(r"<[^>]+>", "", title_match.group(1))).strip()
         if title_match else fallback_title

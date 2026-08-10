@@ -2,7 +2,6 @@
 
 import configparser
 from pathlib import Path
-from typing import Optional
 
 from PyQt6.QtCore import QObject, Qt, pyqtSignal
 from PyQt6.QtGui import QPalette
@@ -15,7 +14,7 @@ class SystemThemeMonitor(QObject):
     system_theme_changed = pyqtSignal(str)
     system_accent_changed = pyqtSignal(str)
 
-    def __init__(self, parent: Optional[QObject] = None) -> None:
+    def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self._app = QApplication.instance()
         self._last_theme = self.get_system_theme()

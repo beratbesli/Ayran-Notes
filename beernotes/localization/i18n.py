@@ -15,10 +15,8 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Dict, Optional
 
 from PyQt6.QtCore import QObject, pyqtSignal
-
 
 _LOCALE_DIR = Path(__file__).resolve().parent
 _SUPPORTED_LANGUAGES = ("en", "tr")
@@ -33,11 +31,11 @@ class I18n(QObject):
 
     language_changed = pyqtSignal(str)  # emits the new language code
 
-    def __init__(self, language: str = "en", parent: Optional[QObject] = None) -> None:
+    def __init__(self, language: str = "en", parent: QObject | None = None) -> None:
         super().__init__(parent)
-        self._strings: Dict[str, str] = {}
+        self._strings: dict[str, str] = {}
         self._language: str = ""
-        self._cache: Dict[str, Dict[str, str]] = {}
+        self._cache: dict[str, dict[str, str]] = {}
         self.set_language(language)
 
     # ------------------------------------------------------------------
@@ -69,7 +67,7 @@ class I18n(QObject):
         self._strings = self._load(lang)
         self.language_changed.emit(lang)
 
-    def t(self, key: str, default: Optional[str] = None, **kwargs) -> str:
+    def t(self, key: str, default: str | None = None, **kwargs) -> str:
         """Translate *key* into the active language.
 
         Supports Python-style ``str.format`` placeholders::
@@ -93,7 +91,7 @@ class I18n(QObject):
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _load(self, lang: str) -> Dict[str, str]:
+    def _load(self, lang: str) -> dict[str, str]:
         """Load a locale JSON file, using cache when available."""
         if lang in self._cache:
             return self._cache[lang]
@@ -103,7 +101,7 @@ class I18n(QObject):
             path = _LOCALE_DIR / "en.json"
 
         try:
-            data: Dict[str, str] = json.loads(path.read_text(encoding="utf-8"))
+            data: dict[str, str] = json.loads(path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
             data = {}
 

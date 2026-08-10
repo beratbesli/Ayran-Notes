@@ -5,21 +5,30 @@ from __future__ import annotations
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional
 
-from PyQt6.QtCore import QSize, Qt, QTimer, QPropertyAnimation, QEasingCurve
-from PyQt6.QtGui import QAction, QActionGroup, QKeyEvent, QKeySequence, QShortcut, QTextCursor, QColor
+from PyQt6.QtCore import QEasingCurve, QPropertyAnimation, QSize, Qt, QTimer
+from PyQt6.QtGui import (
+    QAction,
+    QActionGroup,
+    QColor,
+    QKeyEvent,
+    QKeySequence,
+    QShortcut,
+    QTextCursor,
+)
 from PyQt6.QtWidgets import (
     QButtonGroup,
+    QDialog,
     QFileDialog,
-    QGraphicsOpacityEffect,
     QGraphicsDropShadowEffect,
+    QGraphicsOpacityEffect,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
     QLineEdit,
+    QListView,
     QListWidget,
     QListWidgetItem,
-    QListView,
     QMainWindow,
     QMenu,
     QMessageBox,
@@ -27,30 +36,29 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QSizePolicy,
     QSplitter,
-    QStatusBar,
     QStackedWidget,
+    QStatusBar,
     QTextBrowser,
     QToolBar,
     QVBoxLayout,
     QWidget,
-    QInputDialog,
 )
 
 from beernotes.controllers.note_controller import NoteController
 from beernotes.controllers.settings_controller import SettingsController
 from beernotes.exporters import SUPPORTED_SUFFIXES, export_note
 from beernotes.importers import import_note
+from beernotes.llm_provider import LLMProvider
 from beernotes.localization.i18n import I18n
 from beernotes.storage.models import AppSettings, Note
+from beernotes.ui.floating_toolbar import FloatingToolbar
+from beernotes.ui.llm_dialog import LLMResultDialog
 from beernotes.ui.markdown_support import (
     MarkdownSyntaxHighlighter,
     render_markdown_html,
 )
 from beernotes.ui.settings_dialog import SettingsDialog
 from beernotes.ui.themes import build_stylesheet
-from beernotes.ui.floating_toolbar import FloatingToolbar
-from beernotes.llm_provider import LLMProvider
-from beernotes.ui.llm_dialog import LLMResultDialog
 
 
 class MainWindow(QMainWindow):
@@ -67,9 +75,9 @@ class MainWindow(QMainWindow):
         self._settings_ctrl = settings_ctrl
         self._i18n = i18n
         self._save_state_key = "saved"
-        self._current_note: Optional[Note] = None
-        self._last_detailed_note_id: Optional[str] = None
-        self._current_folder: Optional[str] = None
+        self._current_note: Note | None = None
+        self._last_detailed_note_id: str | None = None
+        self._current_folder: str | None = None
         self._dirty = False
         self._simple_dirty = False
         self._in_zen_mode = False
@@ -96,9 +104,7 @@ class MainWindow(QMainWindow):
         self._retranslate()
         self._change_view_mode("simple")
 
-    # ==================================================================
     # UI Construction
-    # ==================================================================
 
     def _build_ui(self) -> None:
         s = self._settings_ctrl.settings
@@ -643,9 +649,7 @@ class MainWindow(QMainWindow):
         self._act_about.triggered.connect(self._on_about)
         self._help_menu.addAction(self._act_about)
 
-    # ==================================================================
     # Signal wiring
-    # ==================================================================
 
     def _connect_signals(self) -> None:
         # i18n
@@ -703,9 +707,7 @@ class MainWindow(QMainWindow):
         self._shortcut_esc.activated.connect(self._on_escape_key)
 
 
-    # ==================================================================
     # Translation
-    # ==================================================================
 
     def _retranslate(self) -> None:
         t = self._i18n.t
@@ -775,9 +777,7 @@ class MainWindow(QMainWindow):
         self._refresh_note_views()
         self._update_status()
 
-    # ==================================================================
     # Settings application
-    # ==================================================================
 
     def _apply_settings(self, s: AppSettings) -> None:
         theme = self._settings_ctrl.resolved_theme
@@ -882,9 +882,7 @@ class MainWindow(QMainWindow):
         defaults = ["bold", "italic", "checklist"]
         self._settings_ctrl.set_toolbar_actions(defaults)
 
-    # ==================================================================
     # Simple / detailed mode
-    # ==================================================================
 
     def _change_view_mode(self, mode: str) -> None:
         if not self._flush_all_edits():
@@ -1162,8 +1160,8 @@ class MainWindow(QMainWindow):
     @staticmethod
     def _is_empty_simple_note(
         note: Note,
-        title: Optional[str] = None,
-        content: Optional[str] = None,
+        title: str | None = None,
+        content: str | None = None,
     ) -> bool:
         """Return whether a simple-mode draft contains no useful information."""
         visible_title = note.title if title is None else title
@@ -1244,9 +1242,7 @@ class MainWindow(QMainWindow):
             return False
         return self._flush_simple_save()
 
-    # ==================================================================
     # Sidebar handlers
-    # ==================================================================
 
     def _refresh_folder_list(self) -> None:
         self._folder_list.blockSignals(True)
@@ -1335,9 +1331,7 @@ class MainWindow(QMainWindow):
     def _on_search(self, _text: str) -> None:
         self._refresh_note_list()
 
-    # ==================================================================
     # Note CRUD
-    # ==================================================================
 
     def _load_note(self, note_id: str) -> None:
         if self._current_note and self._current_note.id != note_id:
@@ -1555,9 +1549,7 @@ class MainWindow(QMainWindow):
             self._clear_current_note(note_id)
             self._refresh_note_views()
 
-    # ==================================================================
     # Editor tools
-    # ==================================================================
 
     def _active_content_editor(self) -> QPlainTextEdit:
         """Return the editor that is actually visible to the user."""
@@ -1810,9 +1802,7 @@ class MainWindow(QMainWindow):
                 t("import_failed_detail", errors="\n".join(failures)),
             )
 
-    # ==================================================================
     # Auto-save
-    # ==================================================================
 
     def _schedule_save(self) -> None:
         if self._current_note:
@@ -1852,9 +1842,7 @@ class MainWindow(QMainWindow):
 
         return True
 
-    # ==================================================================
     # Preview & Status
-    # ==================================================================
 
     def _update_preview(self, reset_scroll: bool = False) -> None:
         if not hasattr(self, "_preview") or not self._preview.isVisible():
@@ -1943,9 +1931,7 @@ class MainWindow(QMainWindow):
         self._word_label.setText(self._i18n.t("word_count", count=words))
         self._char_label.setText("  ·  " + self._i18n.t("char_count", count=chars))
 
-    # ==================================================================
     # View toggles
-    # ==================================================================
 
     def _on_toggle_sidebar(self, checked: bool) -> None:
         self._settings_ctrl.set_sidebar_visible(checked)
@@ -2034,9 +2020,7 @@ class MainWindow(QMainWindow):
                 self.showNormal()
 
 
-    # ==================================================================
     # Settings / About dialogs
-    # ==================================================================
 
     def _on_open_settings(self) -> None:
         if not self._flush_all_edits():
@@ -2058,9 +2042,7 @@ class MainWindow(QMainWindow):
     def _on_about(self) -> None:
         QMessageBox.about(self, self._i18n.t("about"), self._i18n.t("about_text"))
 
-    # ==================================================================
     # Window lifecycle
-    # ==================================================================
 
     def closeEvent(self, event) -> None:
         # Save any pending edits

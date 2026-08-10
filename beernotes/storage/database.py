@@ -23,11 +23,10 @@ import shutil
 import tempfile
 import uuid
 from pathlib import Path
-from typing import List, Optional
 
-from beernotes.storage.models import AppSettings, Note
-from beernotes.storage.markdown_notes import deserialize_note, serialize_note
 from beernotes.storage.git_versioning import git_manager
+from beernotes.storage.markdown_notes import deserialize_note, serialize_note
+from beernotes.storage.models import AppSettings, Note
 
 _NOTE_ID = re.compile(r"^[0-9a-f]{12}$")
 _NOTES_DIRECTORY_MARKER = ".beernotes-directory"
@@ -97,8 +96,8 @@ class StorageEngine:
 
     def __init__(
         self,
-        base_dir: Optional[Path] = None,
-        notes_dir: Optional[Path] = None,
+        base_dir: Path | None = None,
+        notes_dir: Path | None = None,
     ) -> None:
         self.base_dir = base_dir or _data_dir()
         self.default_notes_dir = self.base_dir / "notes"
@@ -152,7 +151,7 @@ class StorageEngine:
 
     def configure_notes_directory(
         self,
-        directory: Optional[Path | str],
+        directory: Path | str | None,
         *,
         expected_identity: str = "",
     ) -> Path:
@@ -355,10 +354,10 @@ class StorageEngine:
         note._storage_revision = self._revision(raw)
         return note
 
-    def list_notes(self) -> List[Note]:
+    def list_notes(self) -> list[Note]:
         """Return all saved notes, sorted: pinned first, then by updated_at descending."""
         self._validate_active_notes_directory()
-        notes: List[Note] = []
+        notes: list[Note] = []
         for fp in self.notes_dir.glob("*.md"):
             if (
                 not _NOTE_ID.fullmatch(fp.stem)
@@ -382,7 +381,7 @@ class StorageEngine:
         )
         return pinned + unpinned
 
-    def get_note(self, note_id: str) -> Optional[Note]:
+    def get_note(self, note_id: str) -> Note | None:
         """Load a single note by its ID."""
         try:
             path = self._note_path(note_id)
@@ -465,7 +464,7 @@ class StorageEngine:
         shutil.copy2(source, destination)
         return destination
 
-    def get_folders(self) -> List[str]:
+    def get_folders(self) -> list[str]:
         """Return a sorted list of unique folder names across all notes."""
         folders = {note.folder for note in self.list_notes()}
         if "General" not in folders:

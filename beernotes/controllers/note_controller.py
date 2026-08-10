@@ -7,7 +7,6 @@ lifecycle operations and search/filter logic.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List, Optional
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
@@ -22,7 +21,7 @@ class NoteController(QObject):
     note_saved = pyqtSignal(str)          # note_id
     note_deleted = pyqtSignal(str)        # note_id
 
-    def __init__(self, storage: StorageEngine, parent: Optional[QObject] = None) -> None:
+    def __init__(self, storage: StorageEngine, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self._storage = storage
 
@@ -35,7 +34,7 @@ class NoteController(QObject):
     # Read
     # ------------------------------------------------------------------
 
-    def list_notes(self, folder: Optional[str] = None) -> List[Note]:
+    def list_notes(self, folder: str | None = None) -> list[Note]:
         """Return notes, optionally filtered by *folder*."""
         notes = self._storage.list_notes()
         if folder == "__trash__":
@@ -50,11 +49,11 @@ class NoteController(QObject):
             notes = [n for n in notes if n.folder == folder]
         return notes
 
-    def get_note(self, note_id: str) -> Optional[Note]:
+    def get_note(self, note_id: str) -> Note | None:
         """Load a single note."""
         return self._storage.get_note(note_id)
 
-    def search(self, query: str, folder: Optional[str] = None) -> List[Note]:
+    def search(self, query: str, folder: str | None = None) -> list[Note]:
         """Full-text search across title and content."""
         q = query.lower().strip()
         if not q:
@@ -68,7 +67,7 @@ class NoteController(QObject):
             )
         ]
 
-    def get_folders(self) -> List[str]:
+    def get_folders(self) -> list[str]:
         """Return sorted unique folder names."""
         folders = {
             note.folder
@@ -114,7 +113,7 @@ class NoteController(QObject):
             self.notes_changed.emit()
         return ok
 
-    def toggle_pin(self, note_id: str) -> Optional[Note]:
+    def toggle_pin(self, note_id: str) -> Note | None:
         """Toggle the pinned state of a note."""
         note = self._storage.get_note(note_id)
         if note:
@@ -124,7 +123,7 @@ class NoteController(QObject):
             return note
         return None
 
-    def toggle_favorite(self, note_id: str) -> Optional[Note]:
+    def toggle_favorite(self, note_id: str) -> Note | None:
         """Toggle whether a note appears in Favorites."""
         note = self._storage.get_note(note_id)
         if note:
@@ -134,7 +133,7 @@ class NoteController(QObject):
             return note
         return None
 
-    def set_archived(self, note_id: str, archived: bool = True) -> Optional[Note]:
+    def set_archived(self, note_id: str, archived: bool = True) -> Note | None:
         """Archive or unarchive a note."""
         note = self._storage.get_note(note_id)
         if note:
@@ -145,7 +144,7 @@ class NoteController(QObject):
             return note
         return None
 
-    def move_to_trash(self, note_id: str) -> Optional[Note]:
+    def move_to_trash(self, note_id: str) -> Note | None:
         """Move a note to Trash without destroying it."""
         note = self._storage.get_note(note_id)
         if note:
@@ -156,7 +155,7 @@ class NoteController(QObject):
             return note
         return None
 
-    def restore_note(self, note_id: str) -> Optional[Note]:
+    def restore_note(self, note_id: str) -> Note | None:
         """Restore a note from Trash to its previous folder."""
         note = self._storage.get_note(note_id)
         if note:
@@ -166,7 +165,7 @@ class NoteController(QObject):
             return note
         return None
 
-    def move_to_folder(self, note_id: str, folder: str) -> Optional[Note]:
+    def move_to_folder(self, note_id: str, folder: str) -> Note | None:
         """Move a note to a different folder."""
         note = self._storage.get_note(note_id)
         if note:
@@ -176,7 +175,7 @@ class NoteController(QObject):
             return note
         return None
 
-    def add_attachment(self, note_id: str, source: Path) -> Optional[Path]:
+    def add_attachment(self, note_id: str, source: Path) -> Path | None:
         """Copy an attachment into managed storage and associate it with a note."""
         note = self._storage.get_note(note_id)
         if not note:

@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import json
-import urllib.request
 import urllib.error
-from typing import Optional
+import urllib.request
 
 from PyQt6.QtCore import QObject, QThread, pyqtSignal
 
@@ -71,7 +70,7 @@ class LLMWorker(QThread):
         except json.JSONDecodeError:
             self.error_occurred.emit("Invalid JSON response from API")
         except Exception as e:
-            self.error_occurred.emit(f"API error: {str(e)}")
+            self.error_occurred.emit(f"API error: {e!s}")
 
 
 class LLMProvider(QObject):
@@ -85,13 +84,13 @@ class LLMProvider(QObject):
         api_url: str = "",
         api_key: str = "",
         model_name: str = "",
-        parent: Optional[QObject] = None,
+        parent: QObject | None = None,
     ) -> None:
         super().__init__(parent)
         self.api_url = api_url
         self.api_key = api_key
         self.model_name = model_name
-        self._worker: Optional[LLMWorker] = None
+        self._worker: LLMWorker | None = None
         
     def complete(self, prompt: str, system_prompt: str = "") -> str:
         """Synchronous wrapper for tests, but actual calls use workers."""
@@ -130,7 +129,7 @@ class LLMProvider(QObject):
                 result = json.loads(response.read().decode("utf-8"))
                 return result["choices"][0]["message"]["content"]
         except Exception as e:
-            return f"Error: {str(e)}"
+            return f"Error: {e!s}"
             
     def run_async(self, prompt: str, system_prompt: str = "") -> None:
         self._worker = LLMWorker(

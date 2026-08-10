@@ -1,9 +1,8 @@
+import logging
 import os
 import subprocess
 import threading
-import logging
 from pathlib import Path
-from typing import Optional, List, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -11,7 +10,7 @@ class GitVersioning:
     """Manages Git versioning for the notes directory."""
     
     def __init__(self):
-        self._commit_timer: Optional[threading.Timer] = None
+        self._commit_timer: threading.Timer | None = None
         self._lock = threading.Lock()
 
     def is_repo(self, notes_dir: Path) -> bool:
@@ -89,7 +88,7 @@ class GitVersioning:
             logger.error(f"Failed to commit changes: {e}")
             return False
 
-    def get_history(self, notes_dir: Path, filepath: Optional[Path] = None, limit: int = 20) -> List[Dict]:
+    def get_history(self, notes_dir: Path, filepath: Path | None = None, limit: int = 20) -> list[dict]:
         """Get git commit history."""
         if not self.is_repo(notes_dir):
             return []

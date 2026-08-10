@@ -11,7 +11,6 @@ from PyQt6.QtPrintSupport import QPrinter
 
 from beernotes.storage.models import Note
 
-
 SUPPORTED_SUFFIXES = {".md", ".txt", ".html", ".pdf"}
 
 

@@ -10,10 +10,10 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QSplitter,
     QTextEdit,
     QVBoxLayout,
     QWidget,
-    QSplitter,
 )
 
 if TYPE_CHECKING:

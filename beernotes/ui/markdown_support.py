@@ -21,7 +21,6 @@ from PyQt6.QtGui import (
     QTextDocument,
 )
 
-
 _OPENING_FENCE = re.compile(
     r"^[ \t]{0,3}(`{3,}|~{3,})[ \t]*([^ \t`~]+)?(?:[ \t].*)?$"
 )
@@ -88,7 +87,7 @@ class MarkdownSyntaxHighlighter(QSyntaxHighlighter):
         self._highlighting_enabled = enabled
         self.rehighlight()
 
-    def highlightBlock(self, text: str) -> None:  # noqa: N802 - Qt API
+    def highlightBlock(self, text: str) -> None:
         if not self._highlighting_enabled:
             self.setCurrentBlockState(0)
             return

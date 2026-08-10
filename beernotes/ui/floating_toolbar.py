@@ -1,8 +1,16 @@
-from typing import Callable
-from PyQt6.QtCore import Qt, QPoint, QRect, QTimer
-from PyQt6.QtGui import QAction, QIcon, QCursor
-from PyQt6.QtWidgets import QWidget, QHBoxLayout, QPushButton, QGraphicsDropShadowEffect, QPlainTextEdit
+from collections.abc import Callable
+
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
+    QGraphicsDropShadowEffect,
+    QHBoxLayout,
+    QPlainTextEdit,
+    QPushButton,
+    QWidget,
+)
+
 from beernotes.localization.i18n import I18n
+
 
 class FloatingToolbar(QWidget):
     """A floating toolbar that appears near the selected text in a QTextEdit."""

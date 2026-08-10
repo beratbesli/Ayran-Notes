@@ -1,21 +1,22 @@
-from typing import Callable, List, Optional, Tuple
+from collections.abc import Callable
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QKeyEvent
 from PyQt6.QtWidgets import (
     QDialog,
-    QVBoxLayout,
     QLineEdit,
     QListWidget,
     QListWidgetItem,
+    QVBoxLayout,
 )
+
 
 class CommandPalette(QDialog):
     """A searchable command palette for quick actions."""
 
     def __init__(
         self,
-        commands: Optional[List[Tuple[str, Callable[[], None]]]] = None,
+        commands: list[tuple[str, Callable[[], None]]] | None = None,
         parent=None,
     ) -> None:
         super().__init__(parent)
@@ -45,7 +46,7 @@ class CommandPalette(QDialog):
 
         self._populate_list(self._all_commands)
 
-    def set_commands(self, commands: List[Tuple[str, Callable[[], None]]]) -> None:
+    def set_commands(self, commands: list[tuple[str, Callable[[], None]]]) -> None:
         self._all_commands = commands
         self._populate_list(commands)
 
@@ -68,7 +69,7 @@ class CommandPalette(QDialog):
             ]
         self._populate_list(filtered)
 
-    def _populate_list(self, commands: List[Tuple[str, Callable[[], None]]]) -> None:
+    def _populate_list(self, commands: list[tuple[str, Callable[[], None]]]) -> None:
         self.list_widget.clear()
         for name, callback in commands:
             item = QListWidgetItem(name)

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import re
 
-
 _HEX_COLOR = re.compile(r"^#[0-9a-fA-F]{6}$")
 
 

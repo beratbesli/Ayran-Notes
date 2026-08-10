@@ -7,7 +7,6 @@ settings change so the UI can react without a restart.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
@@ -21,7 +20,7 @@ class SettingsController(QObject):
 
     settings_changed = pyqtSignal(AppSettings)
 
-    def __init__(self, storage: StorageEngine, parent: Optional[QObject] = None) -> None:
+    def __init__(self, storage: StorageEngine, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self._storage = storage
         self._settings: AppSettings = self._storage.load_settings()
@@ -145,7 +144,7 @@ class SettingsController(QObject):
         self._settings.view_mode = mode
         self._apply()
 
-    def set_notes_directory(self, directory: Optional[str | Path]) -> None:
+    def set_notes_directory(self, directory: str | Path | None) -> None:
         """Use an existing folder as the shared Markdown notes directory."""
         previous_directory = self._storage.notes_dir
         previous_setting = self._settings.notes_directory
