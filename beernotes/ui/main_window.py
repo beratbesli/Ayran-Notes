@@ -1860,31 +1860,45 @@ class MainWindow(QMainWindow):
         if not hasattr(self, "_preview") or not self._preview.isVisible():
             return
 
+
+        sync = hasattr(self, "_act_sync_scroll") and self._act_sync_scroll.isChecked()
         v_bar = self._preview.verticalScrollBar()
         h_bar = self._preview.horizontalScrollBar()
         v_pos = 0 if reset_scroll else v_bar.value()
         h_pos = 0 if reset_scroll else h_bar.value()
 
         text = self._content_edit.toPlainText()
+        
+        sync_marker = "SYNC_MARK_1234567890"
+        if sync and not reset_scroll:
+            cursor = self._content_edit.textCursor()
+            pos = cursor.position()
+            text = text[:pos] + sync_marker + text[pos:]
+
         if self._current_note and self._current_note.is_markdown:
             settings = self._settings_ctrl.settings
-            self._preview.setHtml(render_markdown_html(
+            html = render_markdown_html(
                 text,
                 theme=settings.theme,
                 accent=settings.accent_color,
                 font_family=settings.font_family,
                 font_size=settings.font_size,
-            ))
+            )
+            self._preview.setHtml(html)
         else:
             self._preview.setPlainText(text)
 
-        if not reset_scroll:
+        if sync and not reset_scroll:
+            doc = self._preview.document()
+            found_cursor = doc.find(sync_marker)
+            if not found_cursor.isNull():
+                found_cursor.removeSelectedText()
+                self._preview.setTextCursor(found_cursor)
+                self._preview.ensureCursorVisible()
+        elif not reset_scroll:
             v_bar.setValue(v_pos)
             h_bar.setValue(h_pos)
-            if hasattr(self, "_act_sync_scroll") and self._act_sync_scroll.isChecked():
-                QTimer.singleShot(0, self._sync_preview_scroll)
-            else:
-                QTimer.singleShot(0, lambda: (v_bar.setValue(v_pos), h_bar.setValue(h_pos)))
+            QTimer.singleShot(0, lambda: (v_bar.setValue(v_pos), h_bar.setValue(h_pos)))
 
     def _sync_preview_scroll(self) -> None:
         if not hasattr(self, "_act_sync_scroll") or not self._act_sync_scroll.isChecked():
