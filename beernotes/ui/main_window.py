@@ -477,7 +477,13 @@ class MainWindow(QMainWindow):
             if shortcut:
                 action.setShortcut(QKeySequence(shortcut))
             self._format_actions[key] = action
+            
         self._toolbar_separator = self._editor_toolbar.addSeparator()
+        self._act_sync_scroll = self._editor_toolbar.addAction("🔒")
+        self._act_sync_scroll.setCheckable(True)
+        self._act_sync_scroll.setChecked(False)
+        
+        self._toolbar_separator2 = self._editor_toolbar.addSeparator()
         self._act_attach_file = self._editor_toolbar.addAction("＋")
         self._act_attach_file.triggered.connect(lambda: self._attach_file(False))
         self._act_attach_image = self._editor_toolbar.addAction("▧")
@@ -662,6 +668,7 @@ class MainWindow(QMainWindow):
         self._content_edit.textChanged.connect(self._schedule_save)
         self._content_edit.textChanged.connect(self._update_preview)
         self._content_edit.textChanged.connect(self._update_status)
+        self._content_edit.verticalScrollBar().valueChanged.connect(self._sync_preview_scroll)
 
         # Simple mode
         self._simple_search.textChanged.connect(lambda _: self._refresh_simple_cards())
@@ -1874,7 +1881,23 @@ class MainWindow(QMainWindow):
         if not reset_scroll:
             v_bar.setValue(v_pos)
             h_bar.setValue(h_pos)
-            QTimer.singleShot(0, lambda: (v_bar.setValue(v_pos), h_bar.setValue(h_pos)))
+            if hasattr(self, "_act_sync_scroll") and self._act_sync_scroll.isChecked():
+                QTimer.singleShot(0, self._sync_preview_scroll)
+            else:
+                QTimer.singleShot(0, lambda: (v_bar.setValue(v_pos), h_bar.setValue(h_pos)))
+
+    def _sync_preview_scroll(self) -> None:
+        if not hasattr(self, "_act_sync_scroll") or not self._act_sync_scroll.isChecked():
+            return
+        if not hasattr(self, "_preview") or not self._preview.isVisible():
+            return
+            
+        e_sb = self._content_edit.verticalScrollBar()
+        p_sb = self._preview.verticalScrollBar()
+        
+        if e_sb.maximum() > 0:
+            ratio = e_sb.value() / e_sb.maximum()
+            p_sb.setValue(int(ratio * p_sb.maximum()))
 
 
     def _set_save_state(self, key: str) -> None:
