@@ -7,11 +7,13 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
-from PyQt6.QtCore import QSize, Qt, QTimer
-from PyQt6.QtGui import QAction, QActionGroup, QKeyEvent, QKeySequence, QShortcut, QTextCursor
+from PyQt6.QtCore import QSize, Qt, QTimer, QPropertyAnimation, QEasingCurve
+from PyQt6.QtGui import QAction, QActionGroup, QKeyEvent, QKeySequence, QShortcut, QTextCursor, QColor
 from PyQt6.QtWidgets import (
     QButtonGroup,
     QFileDialog,
+    QGraphicsOpacityEffect,
+    QGraphicsDropShadowEffect,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -152,6 +154,15 @@ class MainWindow(QMainWindow):
         folder_layout.addWidget(self._folder_list, 1)
         self._sidebar_splitter.addWidget(folder_panel)
 
+        # Sidebar shadow
+        self._sidebar_shadow = QGraphicsDropShadowEffect(self._sidebar)
+        self._sidebar_shadow.setBlurRadius(20)
+        self._sidebar_shadow.setXOffset(3)
+        self._sidebar_shadow.setYOffset(0)
+        self._sidebar_shadow.setColor(QColor(0, 0, 0, 40))
+        self._sidebar.setGraphicsEffect(self._sidebar_shadow)
+
+
         notes_panel = QWidget()
         notes_layout = QVBoxLayout(notes_panel)
         notes_layout.setContentsMargins(0, 0, 0, 0)
@@ -260,12 +271,19 @@ class MainWindow(QMainWindow):
         self._statusbar.addPermanentWidget(self._word_label)
         self._statusbar.addPermanentWidget(self._char_label)
 
-        # ── Zen mode floating exit button ─────────────────────────
+# ── Zen mode floating exit button ─────────────────────────
         self._zen_exit_btn = QPushButton(self)
         self._zen_exit_btn.setObjectName("zenExitButton")
         self._zen_exit_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._zen_exit_btn.clicked.connect(self._exit_zen_mode)
         self._zen_exit_btn.hide()
+        
+        # Zen button shadow
+        self._zen_shadow = QGraphicsDropShadowEffect(self._zen_exit_btn)
+        self._zen_shadow.setBlurRadius(15)
+        self._zen_shadow.setOffset(0, 4)
+        self._zen_shadow.setColor(QColor(0, 0, 0, 80))
+        self._zen_exit_btn.setGraphicsEffect(self._zen_shadow)
 
 
     def _build_simple_ui(self) -> None:
@@ -877,9 +895,23 @@ class MainWindow(QMainWindow):
         self._act_detailed_mode.setChecked(not simple)
         self._nav_simple.setChecked(simple)
         self._nav_detailed.setChecked(not simple)
-        self._view_stack.setCurrentWidget(
-            self._simple_view if simple else self._detailed_view
-        )
+        
+        new_widget = self._simple_view if simple else self._detailed_view
+        if previous and previous is not new_widget:
+            # Fade transition
+            self._opacity_effect = QGraphicsOpacityEffect(self._view_stack)
+            self._view_stack.setGraphicsEffect(self._opacity_effect)
+            self._anim = QPropertyAnimation(self._opacity_effect, b"opacity")
+            self._anim.setDuration(250)
+            self._anim.setStartValue(0.0)
+            self._anim.setEndValue(1.0)
+            self._anim.setEasingCurve(QEasingCurve.Type.InOutSine)
+            
+            self._view_stack.setCurrentWidget(new_widget)
+            self._anim.start()
+        else:
+            self._view_stack.setCurrentWidget(new_widget)
+
         if simple:
             self._refresh_simple_cards()
         elif previous is not self._detailed_view:
