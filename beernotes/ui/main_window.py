@@ -94,6 +94,7 @@ class MainWindow(QMainWindow):
         self._apply_settings(self._settings_ctrl.settings)
         self._refresh_note_list()
         self._retranslate()
+        self._change_view_mode("simple")
 
     # ==================================================================
     # UI Construction
@@ -906,6 +907,7 @@ class MainWindow(QMainWindow):
             self._anim.setStartValue(0.0)
             self._anim.setEndValue(1.0)
             self._anim.setEasingCurve(QEasingCurve.Type.InOutSine)
+            self._anim.finished.connect(lambda: self._view_stack.setGraphicsEffect(None))
             
             self._view_stack.setCurrentWidget(new_widget)
             self._anim.start()
