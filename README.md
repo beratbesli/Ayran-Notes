@@ -16,133 +16,57 @@
 
 ---
 
-## ✨ Features
+## Download & Install (For Users)
+
+Beer Notes is designed to be incredibly easy to install on Linux. You do not need to install Python, libraries, or use the terminal. Just download the appropriate file from the **Releases** page!
+
+### 1. Debian/Ubuntu Systems (.deb) - Recommended
+For Ubuntu, Debian, Linux Mint, Pop!_OS, and other Debian-based distributions:
+1. Download the `Beer-Notes-amd64.deb` file from the Releases page.
+2. Double-click the downloaded file to open it in your Software Center, and click **Install**.
+3. You can now launch Beer Notes directly from your application menu!
+
+### 2. Universal Linux (AppImage) - Portable
+For Fedora, Arch Linux, Manjaro, or if you prefer a portable app without installation:
+1. Download the `Beer-Notes-x86_64.AppImage` file.
+2. Right-click the file -> Properties -> Permissions -> Check **"Allow executing file as program"**.
+3. Double-click the file to run Beer Notes instantly!
+
+---
+
+## Features
 
 | Feature | Description |
 |---|---|
-| 📝 **Markdown Editor** | Pygments-highlighted fenced code in the editor and matching live preview |
-| 🤖 **AI Assistant (LLM)** | Native integration with Gemini/OpenAI for text generation, translation, and grammar checking |
-| 🕒 **Git Versioning** | Automatic, invisible Git versioning (Time Machine) for all your notes |
-| 🧘 **Zen Mode** | Distraction-free full-screen writing environment (`F11` or `Ctrl+Shift+Z`) |
-| ⌨️ **Command Palette** | Sublime/VSCode style command palette (`Ctrl+P`) for lightning-fast navigation |
-| 🪄 **Floating Toolbar** | Medium-style floating context menu for quick text formatting |
-| 💻 **CLI Support** | Command-line interface (`beernotes-cli`) to create, search, and manage notes from the terminal |
-| 📂 **Folder Organization** | Organize notes into custom folders |
-| 📌 **Pin Notes** | Pin important notes to the top of the list |
-| 🔍 **Full-Text Search** | Instantly search across all note titles and content |
-| 🌙 **Refined Themes** | Calm, Apple-inspired light and dark interfaces |
-| 🎨 **Accessible Accent Colors** | Pick any accent; foreground contrast adjusts automatically |
-| 🔤 **Font Customization** | Change font family and size from the settings |
-| 🌍 **Multi-Language (i18n)** | English and Turkish (Türkçe) with instant switching |
-| 💾 **Safe Auto-Save** | Visible save status, atomic writes, and close protection on failure |
-| 📄 **Plain Markdown Storage** | Notes are readable `.md` files with YAML front matter |
-| 🔄 **Safe JSON Migration** | Legacy JSON notes are converted once with exact backups |
-| 💽 **Configurable Notes Folder** | Keep notes in XDG storage or any existing shared folder |
-| 🏷️ **Organization** | Tags, favorites, archive, trash, and safe restore |
-| ✍️ **Editor Tools** | Undo/redo, find/replace, Markdown toolbar, and task lists |
-| 📎 **Attachments** | Copy files and images into managed per-note storage |
-| 📤 **Export** | Save the current note as Markdown, TXT, HTML, or PDF |
-| 📥 **Import** | Import multiple Markdown, TXT, HTML, or Beer Notes JSON files |
-| 🧩 **Custom Toolbar** | Keep the editor minimal and choose visible tools from Extras |
-| 🗃️ **Simple Mode** | Searchable summary cards, empty-state guidance, and focused writing |
-| ⌨️ **Keyboard Shortcuts** | `Ctrl+N`, `Ctrl+Delete`, `Ctrl+B`, `Ctrl+P`, `Ctrl+Q` |
-| 🗂️ **XDG Compliant Storage** | Data stored in `~/.local/share/beernotes/` |
-| 🖥️ **Desktop Integration** | Portable shortcut runs directly from the cloned repository |
+| **Markdown Editor** | Pygments-highlighted fenced code in the editor and matching live preview |
+| **AI Assistant (LLM)** | Native integration with Gemini/OpenAI for text generation, translation, and grammar checking |
+| **Git Versioning** | Automatic, invisible Git versioning (Time Machine) for all your notes |
+| **Zen Mode** | Distraction-free full-screen writing environment (`F11` or `Ctrl+Shift+Z`) |
+| **Command Palette** | Sublime/VSCode style command palette (`Ctrl+P`) for lightning-fast navigation |
+| **Floating Toolbar** | Medium-style floating context menu for quick text formatting |
+| **CLI Support** | Command-line interface (`beernotes-cli`) to create, search, and manage notes from the terminal |
+| **Folder Organization** | Organize notes into custom folders |
+| **Pin Notes** | Pin important notes to the top of the list |
+| **Full-Text Search** | Instantly search across all note titles and content |
+| **Refined Themes** | Calm, Apple-inspired light and dark interfaces |
+| **Accessible Accent Colors** | Pick any accent; foreground contrast adjusts automatically |
+| **Font Customization** | Change font family and size from the settings |
+| **Multi-Language (i18n)** | English and Turkish (Türkçe) with instant switching |
+| **Safe Auto-Save** | Visible save status, atomic writes, and close protection on failure |
+| **Plain Markdown Storage** | Notes are readable `.md` files with YAML front matter |
+| **Safe JSON Migration** | Legacy JSON notes are converted once with exact backups |
+| **Configurable Notes Folder**| Keep notes in XDG storage or any existing shared folder |
+| **Organization** | Tags, favorites, archive, trash, and safe restore |
+| **Editor Tools** | Undo/redo, find/replace, Markdown toolbar, and task lists |
+| **Attachments** | Copy files and images into managed per-note storage |
+| **Export** | Save the current note as Markdown, TXT, HTML, or PDF |
+| **Import** | Import multiple Markdown, TXT, HTML, or Beer Notes JSON files |
+| **Simple Mode** | Searchable summary cards, empty-state guidance, and focused writing |
+| **XDG Compliant Storage** | Data stored in `~/.local/share/beernotes/` |
 
 ---
 
-## 🚀 Quick Start
-
-### Prerequisites
-
-- **Python 3.10+**
-- **PyQt6** (`pip install PyQt6`)
-- **markdown** (`pip install markdown`)
-- **Pygments** (`pip install Pygments`)
-- **PyYAML** (`pip install PyYAML`)
-
-### Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/beratbesli/Beer-Notes.git
-cd Beer-Notes
-
-# Install dependencies
-pip install -r requirements.txt
-# or, on externally-managed systems:
-pip install --break-system-packages -r requirements.txt
-
-# Launch the app
-python3 run.py
-```
-
-### Desktop Integration (Optional)
-
-To add Beer Notes to your Linux application menu:
-
-```bash
-# Install a shortcut for the current user (no sudo required)
-python3 install_shortcut.py
-```
-
-The installer keeps the repository as the single application copy and adds only a
-small launcher under `~/.local/bin` plus the menu icon. If the repository is on an
-external drive, the launcher shows a clear warning when that drive is unavailable;
-after mounting it, the same shortcut works normally. If you move the repository,
-run the installer again from its new location to update the shortcut. To remove it:
-
-```bash
-python3 install_shortcut.py --uninstall
-```
-
-### AppImage (Portable)
-
-You can also build a portable AppImage that runs on most Linux distributions without installing dependencies:
-
-```bash
-./packaging/build_appimage.sh
-```
-The final executable will be located in the `dist/` directory.
-
----
-
-## 🏗️ Project Structure
-
-```
-Beer-Notes/
-├── beernotes/                  # Main application package
-│   ├── __init__.py
-│   ├── main.py                 # Application entry point
-│   ├── assets/
-│   │   └── beernotes.png       # Application icon
-│   ├── controllers/            # Business logic layer
-│   │   ├── note_controller.py  # Note CRUD & search
-│   │   └── settings_controller.py
-│   ├── storage/                # Data persistence layer
-│   │   ├── models.py           # Note & AppSettings dataclasses
-│   │   ├── database.py         # Markdown storage & legacy migration
-│   │   └── markdown_notes.py   # YAML front-matter codec
-│   ├── localization/           # i18n system
-│   │   ├── i18n.py             # Translation engine (Qt signals)
-│   │   ├── en.json             # English locale
-│   │   └── tr.json             # Turkish locale
-│   └── ui/                     # PyQt6 UI components
-│       ├── main_window.py      # Main application window
-│       ├── markdown_support.py # Fenced-code highlighting and preview rendering
-│       ├── settings_dialog.py  # Preferences dialog
-│       └── themes.py           # Dark/Light theme QSS engine
-├── run.py                      # Convenience launcher
-├── install_shortcut.py         # Portable Linux shortcut installer
-├── beernotes.desktop           # XDG desktop entry
-├── requirements.txt            # Python dependencies
-├── pyproject.toml              # PEP 621 project metadata
-└── README.md
-```
-
----
-
-## ⌨️ Keyboard Shortcuts
+## Keyboard Shortcuts
 
 | Shortcut | Action |
 |---|---|
@@ -158,43 +82,9 @@ Beer-Notes/
 | `Ctrl + P` | Toggle markdown preview |
 | `Ctrl + Q` | Quit application |
 
-Editor buttons are intentionally minimal by default. Open
-`Extras → Customize Toolbar` to add or remove formatting, code, link, and
-attachment buttons. The selection is saved automatically.
-
-Beer Notes starts in **Simple Mode** with searchable note cards. Select a card
-to open the distraction-free editor, or use the `+` button to create a note.
-Switch modes with the segmented control at the top or from the `View` menu;
-the choice is remembered.
-
 ---
 
-## 🎨 Customization
-
-### Themes
-Switch between **Dark** and **Light** mode from `Extras → Preferences → Appearance`.
-
-### Accent Color
-Click the accent color button to open a color picker and choose any color. Changes apply instantly.
-
-### Fonts
-Select from popular fonts (Inter, Roboto, Fira Code, JetBrains Mono, etc.) or type any installed font name. Adjust size from 8px to 32px.
-
-### Language
-Switch between **English** and **Türkçe** from `Extras → Preferences → General`. The entire UI updates instantly — no restart required.
-
-### Notes Directory
-Choose `Extras → Preferences → General → Notes Directory` to use an existing
-folder on another disk or shared partition. Beer Notes keeps `settings.json`
-under the normal XDG location and uses the selected folder only as the note
-source of truth. Existing directories are required deliberately: if a removable
-disk is unavailable, Beer Notes reports the problem instead of silently creating
-a second empty note collection. A hidden `.beernotes-directory` identity marker
-also detects a stale mount point that belongs to a different disk.
-
----
-
-## 💾 Data Storage
+## Data Storage
 
 All data is stored locally following XDG standards:
 
@@ -204,61 +94,42 @@ All data is stored locally following XDG standards:
 ├── notes/
 │   ├── <note_id>.md         # Markdown + YAML front matter
 │   └── ...
-├── legacy-json-backup/
-│   └── default/             # Exact originals from the one-time migration
 └── attachments/             # Managed files grouped by note ID
 ```
 
-Each `.md` file is the source of truth and can be read or edited in any text
-editor. Its YAML block stores the title, tags, timestamps, pin and folder state,
-while the Markdown body contains the note itself. On the first launch after this
-update, legacy `notes/*.json` files are converted automatically; an exact copy
-is retained under a source-specific folder in `legacy-json-backup/` before any
-legacy file is removed. If a Markdown file was changed externally after Beer
-Notes loaded it, the next save is rejected instead of overwriting that edit.
+Each `.md` file is the source of truth and can be read or edited in any text editor. Its YAML block stores the title, tags, timestamps, pin and folder state, while the Markdown body contains the note itself. 
 
 ---
 
-## 🌍 Localization
+## For Developers (Building from Source)
 
-Beer Notes supports dynamic language switching via a JSON-based locale system:
-
-- **English** (`en.json`) — Default
-- **Turkish** (`tr.json`) — Türkçe
-
-### Adding a New Language
-
-1. Copy `beernotes/localization/en.json` to `<lang_code>.json`
-2. Translate all values
-3. Add the language code to `_SUPPORTED_LANGUAGES` in `beernotes/localization/i18n.py`
-4. Add a combo box entry in `beernotes/ui/settings_dialog.py`
-
----
-
-## 🛠️ Development
+If you wish to contribute to Beer Notes or run it from the source code:
 
 ```bash
-# Run from source
+git clone https://github.com/beratbesli/Beer-Notes.git
+cd Beer-Notes
+
+# Install dependencies
+pip install -r requirements.txt
+# (or pip install --break-system-packages -r requirements.txt)
+
+# Run the app
 python3 run.py
-
-# Install as editable package
-pip install -e .
-
-# Run as module
-python3 -m beernotes.main
-
-# Run the complete headless test suite
-QT_QPA_PLATFORM=offscreen python3 -m unittest discover -s tests -v
 ```
+
+### Packaging
+Scripts are provided to generate standalone packages:
+- **AppImage:** `./packaging/build_appimage.sh`
+- **.deb Package:** `./packaging/build_deb.sh`
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
 
 ---
 
 <p align="center">
-  Made with ☕ & 🍺 by <a href="https://github.com/beratbesli">Berat Besli</a>
+  Made with 🍺 by <a href="https://github.com/beratbesli">Berat Besli</a>
 </p>
