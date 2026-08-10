@@ -21,6 +21,12 @@
 | Feature | Description |
 |---|---|
 | 📝 **Markdown Editor** | Pygments-highlighted fenced code in the editor and matching live preview |
+| 🤖 **AI Assistant (LLM)** | Native integration with Gemini/OpenAI for text generation, translation, and grammar checking |
+| 🕒 **Git Versioning** | Automatic, invisible Git versioning (Time Machine) for all your notes |
+| 🧘 **Zen Mode** | Distraction-free full-screen writing environment (`F11` or `Ctrl+Shift+Z`) |
+| ⌨️ **Command Palette** | Sublime/VSCode style command palette (`Ctrl+P`) for lightning-fast navigation |
+| 🪄 **Floating Toolbar** | Medium-style floating context menu for quick text formatting |
+| 💻 **CLI Support** | Command-line interface (`beernotes-cli`) to create, search, and manage notes from the terminal |
 | 📂 **Folder Organization** | Organize notes into custom folders |
 | 📌 **Pin Notes** | Pin important notes to the top of the list |
 | 🔍 **Full-Text Search** | Instantly search across all note titles and content |
