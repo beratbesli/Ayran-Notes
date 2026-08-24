@@ -5,10 +5,10 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from beernotes.storage.git_versioning import GitVersioning
-from beernotes.storage.database import StorageEngine
-from beernotes.storage.models import Note
-import beernotes.storage.git_versioning as gv
+from ayrannotes.storage.git_versioning import GitVersioning
+from ayrannotes.storage.database import StorageEngine
+from ayrannotes.storage.models import Note
+import ayrannotes.storage.git_versioning as gv
 
 
 class GitVersioningTests(unittest.TestCase):

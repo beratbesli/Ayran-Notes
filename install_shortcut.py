@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install or remove the Beer Notes desktop-menu shortcut for this user."""
+"""Install or remove the Ayran Notes desktop-menu shortcut for this user."""
 
 from __future__ import annotations
 
@@ -12,13 +12,13 @@ import sys
 from pathlib import Path
 
 
-APP_ID = "beernotes"
+APP_ID = "ayrannotes"
 PROJECT_DIR = Path(__file__).resolve().parent
 LAUNCHER = PROJECT_DIR / "run.py"
-SOURCE_PACKAGE = PROJECT_DIR / "beernotes"
-SOURCE_ICON = PROJECT_DIR / "beernotes" / "assets" / "beernotes.png"
-WRAPPER_NAME = "beernotes-repo"
-LEGACY_INSTALL_DIR_NAME = "beernotes-app"
+SOURCE_PACKAGE = PROJECT_DIR / "ayrannotes"
+SOURCE_ICON = PROJECT_DIR / "ayrannotes" / "assets" / "ayrannotes.png"
+WRAPPER_NAME = "ayrannotes-repo"
+LEGACY_INSTALL_DIR_NAME = "ayrannotes-app"
 
 
 def _data_home() -> Path:
@@ -51,7 +51,7 @@ def _refresh_desktop_database(applications_dir: Path) -> None:
 def install() -> Path:
     """Install a tiny repository launcher and desktop entry for this user."""
     if not LAUNCHER.is_file() or not SOURCE_PACKAGE.is_dir() or not SOURCE_ICON.is_file():
-        raise FileNotFoundError("Beer Notes files are incomplete; clone the repository again.")
+        raise FileNotFoundError("Ayran Notes files are incomplete; clone the repository again.")
 
     data_home = _data_home()
     bin_home = _bin_home()
@@ -71,9 +71,9 @@ PROJECT_DIR={shlex.quote(str(PROJECT_DIR))}
 APP_LAUNCHER={shlex.quote(str(LAUNCHER))}
 
 if [ ! -f "$APP_LAUNCHER" ]; then
-    MESSAGE="Beer Notes project files are unavailable: $PROJECT_DIR"
+    MESSAGE="Ayran Notes project files are unavailable: $PROJECT_DIR"
     if command -v notify-send >/dev/null 2>&1; then
-        notify-send "Beer Notes" "$MESSAGE"
+        notify-send "Ayran Notes" "$MESSAGE"
     fi
     printf '%s\\n' "$MESSAGE" >&2
     exit 1
@@ -91,7 +91,7 @@ exec {shlex.quote(sys.executable)} "$APP_LAUNCHER"
     desktop_entry = f"""[Desktop Entry]
 Version=1.0
 Type=Application
-Name=Beer Notes
+Name=Ayran Notes
 GenericName=Note-Taking App
 Comment=A lightweight, customizable note-taking application for Linux
 Exec={_quote_exec_arg(wrapper_path)}
@@ -99,7 +99,7 @@ Icon={APP_ID}
 Terminal=false
 Categories=Utility;TextEditor;
 Keywords=notes;markdown;editor;text;
-StartupWMClass=beernotes
+StartupWMClass=ayrannotes
 StartupNotify=true
 """
     desktop_path.write_text(desktop_entry, encoding="utf-8")
@@ -125,7 +125,7 @@ def uninstall() -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Install Beer Notes in the current user's Linux application menu."
+        description="Install Ayran Notes in the current user's Linux application menu."
     )
     parser.add_argument(
         "--uninstall",
@@ -136,10 +136,10 @@ def main() -> None:
 
     if args.uninstall:
         uninstall()
-        print("Beer Notes shortcut removed.")
+        print("Ayran Notes shortcut removed.")
     else:
         path = install()
-        print(f"Beer Notes shortcut installed: {path}")
+        print(f"Ayran Notes shortcut installed: {path}")
 
 
 if __name__ == "__main__":

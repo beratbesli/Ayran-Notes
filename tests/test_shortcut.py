@@ -59,7 +59,7 @@ class ShortcutInstallerTests(unittest.TestCase):
             / "hicolor"
             / "512x512"
             / "apps"
-            / "beernotes.png"
+            / "ayrannotes.png"
         )
         wrapper_path = self.home / ".local" / "bin" / install_shortcut.WRAPPER_NAME
 

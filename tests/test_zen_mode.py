@@ -6,11 +6,11 @@ from pathlib import Path
 
 from PyQt6.QtWidgets import QApplication
 
-from beernotes.controllers.note_controller import NoteController
-from beernotes.controllers.settings_controller import SettingsController
-from beernotes.localization.i18n import I18n
-from beernotes.storage.database import StorageEngine
-from beernotes.ui.main_window import MainWindow
+from ayrannotes.controllers.note_controller import NoteController
+from ayrannotes.controllers.settings_controller import SettingsController
+from ayrannotes.localization.i18n import I18n
+from ayrannotes.storage.database import StorageEngine
+from ayrannotes.ui.main_window import MainWindow
 
 
 class ZenModeTests(unittest.TestCase):

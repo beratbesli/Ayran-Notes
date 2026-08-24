@@ -6,8 +6,8 @@ from pathlib import Path
 
 from PyQt6.QtWidgets import QApplication
 
-from beernotes.exporters import export_note
-from beernotes.storage.models import Note
+from ayrannotes.exporters import export_note
+from ayrannotes.storage.models import Note
 
 
 class ExportTests(unittest.TestCase):

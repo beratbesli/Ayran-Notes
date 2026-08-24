@@ -1,5 +1,5 @@
 <p align="center">
-  <h1 align="center">🍺 Beer Notes</h1>
+  <h1 align="center">🥛 Ayran Notes</h1>
   <p align="center">
     A lightweight, customizable, and modern note-taking application for Linux.
     <br />
@@ -18,19 +18,19 @@
 
 ## Download & Install (For Users)
 
-Beer Notes is designed to be incredibly easy to install on Linux. You do not need to install Python, libraries, or use the terminal. Just download the appropriate file from the **Releases** page!
+Ayran Notes is designed to be incredibly easy to install on Linux. You do not need to install Python, libraries, or use the terminal. Just download the appropriate file from the **Releases** page!
 
 ### 1. Debian/Ubuntu Systems (.deb) - Recommended
 For Ubuntu, Debian, Linux Mint, Pop!_OS, and other Debian-based distributions:
-1. Download the `Beer-Notes-amd64.deb` file from the Releases page.
+1. Download the `Ayran-Notes-amd64.deb` file from the Releases page.
 2. Double-click the downloaded file to open it in your Software Center, and click **Install**.
-3. You can now launch Beer Notes directly from your application menu!
+3. You can now launch Ayran Notes directly from your application menu!
 
 ### 2. Universal Linux (AppImage) - Portable
 For Fedora, Arch Linux, Manjaro, or if you prefer a portable app without installation:
-1. Download the `Beer-Notes-x86_64.AppImage` file.
+1. Download the `Ayran-Notes-x86_64.AppImage` file.
 2. Right-click the file -> Properties -> Permissions -> Check **"Allow executing file as program"**.
-3. Double-click the file to run Beer Notes instantly!
+3. Double-click the file to run Ayran Notes instantly!
 
 ---
 
@@ -44,7 +44,7 @@ For Fedora, Arch Linux, Manjaro, or if you prefer a portable app without install
 | **Zen Mode** | Distraction-free full-screen writing environment (`F11` or `Ctrl+Shift+Z`) |
 | **Command Palette** | Sublime/VSCode style command palette (`Ctrl+P`) for lightning-fast navigation |
 | **Floating Toolbar** | Medium-style floating context menu for quick text formatting |
-| **CLI Support** | Command-line interface (`beernotes-cli`) to create, search, and manage notes from the terminal |
+| **CLI Support** | Command-line interface (`ayrannotes-cli`) to create, search, and manage notes from the terminal |
 | **Folder Organization** | Organize notes into custom folders |
 | **Pin Notes** | Pin important notes to the top of the list |
 | **Full-Text Search** | Instantly search across all note titles and content |
@@ -60,9 +60,9 @@ For Fedora, Arch Linux, Manjaro, or if you prefer a portable app without install
 | **Editor Tools** | Undo/redo, find/replace, Markdown toolbar, and task lists |
 | **Attachments** | Copy files and images into managed per-note storage |
 | **Export** | Save the current note as Markdown, TXT, HTML, or PDF |
-| **Import** | Import multiple Markdown, TXT, HTML, or Beer Notes JSON files |
+| **Import** | Import multiple Markdown, TXT, HTML, or Ayran Notes JSON files |
 | **Simple Mode** | Searchable summary cards, empty-state guidance, and focused writing |
-| **XDG Compliant Storage** | Data stored in `~/.local/share/beernotes/` |
+| **XDG Compliant Storage** | Data stored in `~/.local/share/ayrannotes/` |
 
 ---
 
@@ -89,7 +89,7 @@ For Fedora, Arch Linux, Manjaro, or if you prefer a portable app without install
 All data is stored locally following XDG standards:
 
 ```
-~/.local/share/beernotes/
+~/.local/share/ayrannotes/
 ├── settings.json            # Application preferences
 ├── notes/
 │   ├── <note_id>.md         # Markdown + YAML front matter
@@ -103,11 +103,11 @@ Each `.md` file is the source of truth and can be read or edited in any text edi
 
 ## For Developers (Building from Source)
 
-If you wish to contribute to Beer Notes or run it from the source code:
+If you wish to contribute to Ayran Notes or run it from the source code:
 
 ```bash
-git clone https://github.com/beratbesli/Beer-Notes.git
-cd Beer-Notes
+git clone https://github.com/beratbesli/Ayran-Notes.git
+cd Ayran-Notes
 
 # Install dependencies
 pip install -r requirements.txt
@@ -131,5 +131,5 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 ---
 
 <p align="center">
-  Made with 🍺 by <a href="https://github.com/beratbesli">Berat Besli</a>
+  Made with 🥛 by <a href="https://github.com/beratbesli">Berat Besli</a>
 </p>

@@ -1,10 +1,10 @@
-"""Tests for the Beer Notes Command Palette."""
+"""Tests for the Ayran Notes Command Palette."""
 
 import unittest
 
 from PyQt6.QtWidgets import QApplication
 
-from beernotes.ui.command_palette import CommandPalette
+from ayrannotes.ui.command_palette import CommandPalette
 
 
 class CommandPaletteTests(unittest.TestCase):

@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 from PyQt6.QtWidgets import QApplication
 
-from beernotes.llm_provider import LLMProvider, LLMWorker
+from ayrannotes.llm_provider import LLMProvider, LLMWorker
 
 
 class MockResponse:

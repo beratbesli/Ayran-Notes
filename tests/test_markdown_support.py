@@ -5,7 +5,7 @@ import unittest
 from PyQt6.QtGui import QTextDocument
 from PyQt6.QtWidgets import QApplication
 
-from beernotes.ui.markdown_support import (
+from ayrannotes.ui.markdown_support import (
     MarkdownSyntaxHighlighter,
     render_markdown_html,
 )
@@ -78,7 +78,7 @@ class MarkdownSupportTests(unittest.TestCase):
 
     def test_preview_uses_pygments_and_keeps_task_list_markup(self) -> None:
         rendered = render_markdown_html(
-            "- [x] Ship it\n\n```python\nif True:\n    print('<beer>')\n```",
+            "- [x] Ship it\n\n```python\nif True:\n    print('<ayran>')\n```",
             theme="dark",
         )
 
@@ -87,7 +87,7 @@ class MarkdownSupportTests(unittest.TestCase):
         self.assertIn(".highlight .k", rendered)
         self.assertIn('class="task-item"', rendered)
         self.assertIn("☑", rendered)
-        self.assertIn("&lt;beer&gt;", rendered)
+        self.assertIn("&lt;ayran&gt;", rendered)
 
     def test_preview_theme_changes_pygments_style(self) -> None:
         source = "```python\nreturn True\n```"

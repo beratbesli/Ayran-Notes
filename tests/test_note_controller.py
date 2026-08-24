@@ -6,8 +6,8 @@ from pathlib import Path
 
 from PyQt6.QtWidgets import QApplication
 
-from beernotes.controllers.note_controller import NoteController
-from beernotes.storage.database import StorageEngine
+from ayrannotes.controllers.note_controller import NoteController
+from ayrannotes.storage.database import StorageEngine
 
 
 class NoteControllerTests(unittest.TestCase):

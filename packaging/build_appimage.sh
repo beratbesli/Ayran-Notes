@@ -3,13 +3,13 @@
 # Exit on error
 set -e
 
-echo "🍺 Building Beer Notes AppImage..."
+echo "🥛 Building Ayran Notes AppImage..."
 
 # Get absolute paths
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PACKAGING_DIR="${PROJECT_ROOT}/packaging"
 BUILD_DIR="${PACKAGING_DIR}/build"
-APPDIR="${PACKAGING_DIR}/Beer-Notes.AppDir"
+APPDIR="${PACKAGING_DIR}/Ayran-Notes.AppDir"
 DIST_DIR="${PROJECT_ROOT}/dist"
 
 cd "$PROJECT_ROOT"
@@ -47,7 +47,7 @@ pip install pyinstaller
 
 echo "🏗️ Building with PyInstaller..."
 cd "$PACKAGING_DIR"
-pyinstaller beernotes.spec --workpath="${BUILD_DIR}/pyinstaller_build" --distpath="${BUILD_DIR}/pyinstaller_dist"
+pyinstaller ayrannotes.spec --workpath="${BUILD_DIR}/pyinstaller_build" --distpath="${BUILD_DIR}/pyinstaller_dist"
 
 echo "📁 Creating AppDir structure..."
 cd "$PROJECT_ROOT"
@@ -59,17 +59,17 @@ mkdir -p "${APPDIR}/usr/share/applications"
 mkdir -p "${APPDIR}/usr/share/icons/hicolor/256x256/apps"
 
 # Copy PyInstaller output to usr/bin
-cp -r "${BUILD_DIR}/pyinstaller_dist/beernotes/"* "${APPDIR}/usr/bin/"
+cp -r "${BUILD_DIR}/pyinstaller_dist/ayrannotes/"* "${APPDIR}/usr/bin/"
 
 # Copy AppRun
 cp "${PACKAGING_DIR}/AppRun" "${APPDIR}/AppRun"
 chmod +x "${APPDIR}/AppRun"
 
 # Copy desktop file and icon
-cp beernotes.desktop "${APPDIR}/beernotes.desktop"
-cp beernotes.desktop "${APPDIR}/usr/share/applications/beernotes.desktop"
-cp beernotes/assets/beernotes.png "${APPDIR}/beernotes.png"
-cp beernotes/assets/beernotes.png "${APPDIR}/usr/share/icons/hicolor/256x256/apps/beernotes.png"
+cp ayrannotes.desktop "${APPDIR}/ayrannotes.desktop"
+cp ayrannotes.desktop "${APPDIR}/usr/share/applications/ayrannotes.desktop"
+cp ayrannotes/assets/ayrannotes.png "${APPDIR}/ayrannotes.png"
+cp ayrannotes/assets/ayrannotes.png "${APPDIR}/usr/share/icons/hicolor/256x256/apps/ayrannotes.png"
 
 echo "🐧 Downloading linuxdeploy..."
 cd "$PACKAGING_DIR"
@@ -83,6 +83,6 @@ export ARCH=x86_64
 ./linuxdeploy-x86_64.AppImage --appdir "${APPDIR}" --output appimage
 
 # Move to dist
-mv Beer_Notes-*.AppImage "${DIST_DIR}/Beer-Notes-x86_64.AppImage"
+mv Ayran_Notes-*.AppImage "${DIST_DIR}/Ayran-Notes-x86_64.AppImage"
 
-echo "✅ Build complete! AppImage is available at ${DIST_DIR}/Beer-Notes-x86_64.AppImage"
+echo "✅ Build complete! AppImage is available at ${DIST_DIR}/Ayran-Notes-x86_64.AppImage"

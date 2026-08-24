@@ -5,7 +5,7 @@ import unittest
 from PyQt6.QtGui import QPalette
 from PyQt6.QtWidgets import QApplication, QInputDialog, QLineEdit
 
-from beernotes.ui.themes import (
+from ayrannotes.ui.themes import (
     _contrast_ratio,
     _contrast_text,
     _readable_accent,

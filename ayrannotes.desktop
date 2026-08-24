@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Ayran Notes
+GenericName=Note-Taking App
+Comment=A lightweight, customizable note-taking application for Linux
+Exec=ayrannotes
+Icon=ayrannotes
+Terminal=false
+Categories=Utility;TextEditor;
+Keywords=notes;markdown;editor;text;
+StartupWMClass=ayrannotes
+StartupNotify=true

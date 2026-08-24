@@ -9,11 +9,11 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QCloseEvent
 from PyQt6.QtWidgets import QApplication, QLabel, QMessageBox
 
-from beernotes.controllers.note_controller import NoteController
-from beernotes.controllers.settings_controller import SettingsController
-from beernotes.localization.i18n import I18n
-from beernotes.storage.database import StorageEngine
-from beernotes.ui.main_window import MainWindow
+from ayrannotes.controllers.note_controller import NoteController
+from ayrannotes.controllers.settings_controller import SettingsController
+from ayrannotes.localization.i18n import I18n
+from ayrannotes.storage.database import StorageEngine
+from ayrannotes.ui.main_window import MainWindow
 
 
 class MainWindowTests(unittest.TestCase):
@@ -114,7 +114,7 @@ class MainWindowTests(unittest.TestCase):
         destination = Path(self.temporary.name) / "exported-note"
 
         with patch(
-            "beernotes.ui.main_window.QFileDialog.getSaveFileName",
+            "ayrannotes.ui.main_window.QFileDialog.getSaveFileName",
             return_value=(str(destination), "Markdown (*.md)"),
         ):
             self.window._export_current_note()
@@ -131,7 +131,7 @@ class MainWindowTests(unittest.TestCase):
         text_path.write_text("Second\n\nPlain body")
 
         with patch(
-            "beernotes.ui.main_window.QFileDialog.getOpenFileNames",
+            "ayrannotes.ui.main_window.QFileDialog.getOpenFileNames",
             return_value=([str(markdown_path), str(text_path)], ""),
         ):
             self.window._import_notes()
@@ -202,7 +202,7 @@ class MainWindowTests(unittest.TestCase):
         self.window._load_simple_note(note.id)
 
         with patch(
-            "beernotes.ui.main_window.QMessageBox.question",
+            "ayrannotes.ui.main_window.QMessageBox.question",
             return_value=QMessageBox.StandardButton.Yes,
         ):
             self.window._on_simple_delete()
@@ -254,7 +254,7 @@ class MainWindowTests(unittest.TestCase):
 
         self.window._simple_content.setPlainText("old old")
         with patch(
-            "beernotes.ui.main_window.QInputDialog.getText",
+            "ayrannotes.ui.main_window.QInputDialog.getText",
             side_effect=[("old", True), ("new", True)],
         ):
             self.window._replace_text()
@@ -264,7 +264,7 @@ class MainWindowTests(unittest.TestCase):
         self.window._show_simple_home()
         self.window._simple_search.setText("new")
         with patch(
-            "beernotes.ui.main_window.QInputDialog.getText"
+            "ayrannotes.ui.main_window.QInputDialog.getText"
         ) as text_prompt:
             self.window._find_text()
         text_prompt.assert_not_called()
@@ -278,7 +278,7 @@ class MainWindowTests(unittest.TestCase):
 
         with (
             patch.object(self.notes, "save_note", side_effect=OSError("disk full")),
-            patch("beernotes.ui.main_window.QMessageBox.critical") as critical,
+            patch("ayrannotes.ui.main_window.QMessageBox.critical") as critical,
         ):
             self.window._change_view_mode("detailed")
             self.assertIs(
@@ -456,7 +456,7 @@ class MainWindowTests(unittest.TestCase):
             return 0
 
         with patch(
-            "beernotes.ui.main_window.SettingsDialog.exec",
+            "ayrannotes.ui.main_window.SettingsDialog.exec",
             side_effect=switch_directory,
         ):
             self.window._on_open_settings()

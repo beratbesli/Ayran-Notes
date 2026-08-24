@@ -4,7 +4,7 @@ import unittest
 from PyQt6.QtWidgets import QApplication, QPlainTextEdit, QMainWindow, QPushButton
 from PyQt6.QtGui import QTextCursor
 
-from beernotes.ui.floating_toolbar import FloatingToolbar
+from ayrannotes.ui.floating_toolbar import FloatingToolbar
 
 
 class DummyI18n:

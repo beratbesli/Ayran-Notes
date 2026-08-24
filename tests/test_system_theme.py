@@ -7,9 +7,9 @@ from unittest.mock import patch
 
 from PyQt6.QtWidgets import QApplication
 
-from beernotes.controllers.settings_controller import SettingsController
-from beernotes.storage.database import StorageEngine
-from beernotes.ui.system_theme import SystemThemeMonitor
+from ayrannotes.controllers.settings_controller import SettingsController
+from ayrannotes.storage.database import StorageEngine
+from ayrannotes.ui.system_theme import SystemThemeMonitor
 
 
 class SystemThemeTests(unittest.TestCase):

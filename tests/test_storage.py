@@ -6,10 +6,10 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from beernotes.controllers.settings_controller import SettingsController
-from beernotes.storage.database import StorageConflictError, StorageEngine
-from beernotes.storage.markdown_notes import serialize_note
-from beernotes.storage.models import Note
+from ayrannotes.controllers.settings_controller import SettingsController
+from ayrannotes.storage.database import StorageConflictError, StorageEngine
+from ayrannotes.storage.markdown_notes import serialize_note
+from ayrannotes.storage.models import Note
 
 
 class StorageEngineTests(unittest.TestCase):
@@ -65,7 +65,7 @@ updated: 2024-02-03
 pinned: true
 folder: Shared
 ---
-Edited outside Beer Notes.
+Edited outside Ayran Notes.
 """,
             encoding="utf-8",
         )
@@ -77,7 +77,7 @@ Edited outside Beer Notes.
         self.assertEqual(loaded.folder, "Shared")
         self.assertTrue(loaded.is_pinned)
         self.assertEqual(loaded.updated_at, "2024-02-03")
-        self.assertEqual(loaded.content, "Edited outside Beer Notes.\n")
+        self.assertEqual(loaded.content, "Edited outside Ayran Notes.\n")
 
     def test_front_matter_allows_indented_yaml_delimiter_text(self) -> None:
         note = Note(title="Before")
@@ -156,7 +156,7 @@ Body
         note.title = "Changed"
 
         with patch(
-            "beernotes.storage.database.os.replace",
+            "ayrannotes.storage.database.os.replace",
             side_effect=OSError("disk"),
         ):
             with self.assertRaises(OSError):
@@ -275,7 +275,7 @@ Body
             source.write_bytes(original)
 
             with patch(
-                "beernotes.storage.database.os.replace",
+                "ayrannotes.storage.database.os.replace",
                 side_effect=OSError("backup disk full"),
             ):
                 with self.assertRaises(OSError):
@@ -330,7 +330,7 @@ Body
         reopened.save_note(note)
 
         self.assertEqual(reopened.notes_dir, shared.resolve())
-        self.assertTrue((shared / ".beernotes-directory").is_file())
+        self.assertTrue((shared / ".ayrannotes-directory").is_file())
         self.assertTrue(reopened.load_settings().notes_directory_id)
         self.assertTrue((shared / f"{note.id}.md").is_file())
         self.assertTrue((self.base_dir / "settings.json").is_file())
@@ -370,7 +370,7 @@ Body
         shared.mkdir()
         controller = SettingsController(self.storage)
         controller.set_notes_directory(shared)
-        marker = shared / ".beernotes-directory"
+        marker = shared / ".ayrannotes-directory"
         marker.write_text("different-volume\n", encoding="utf-8")
 
         with self.assertRaises(OSError):
@@ -427,7 +427,7 @@ Body
 
         persisted = reopened.load_settings()
         marker_identity = (
-            shared / ".beernotes-directory"
+            shared / ".ayrannotes-directory"
         ).read_text(encoding="utf-8").strip()
         self.assertTrue(marker_identity)
         self.assertEqual(persisted.notes_directory_id, marker_identity)
@@ -478,7 +478,7 @@ Body
         )
         persisted = self.storage.load_settings()
         marker_identity = (
-            second / ".beernotes-directory"
+            second / ".ayrannotes-directory"
         ).read_text(encoding="utf-8").strip()
         self.assertTrue(marker_identity)
         self.assertEqual(persisted.notes_directory_id, marker_identity)
