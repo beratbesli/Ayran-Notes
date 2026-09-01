@@ -18,7 +18,6 @@ from PyQt6.QtGui import (
 )
 from PyQt6.QtWidgets import (
     QButtonGroup,
-    QDialog,
     QFileDialog,
     QGraphicsDropShadowEffect,
     QGraphicsOpacityEffect,
@@ -48,11 +47,9 @@ from ayrannotes.controllers.note_controller import NoteController
 from ayrannotes.controllers.settings_controller import SettingsController
 from ayrannotes.exporters import SUPPORTED_SUFFIXES, export_note
 from ayrannotes.importers import import_note
-from ayrannotes.llm_provider import LLMProvider
 from ayrannotes.localization.i18n import I18n
 from ayrannotes.storage.models import AppSettings, Note
 from ayrannotes.ui.floating_toolbar import FloatingToolbar
-from ayrannotes.ui.llm_dialog import LLMResultDialog
 from ayrannotes.ui.markdown_support import (
     MarkdownSyntaxHighlighter,
     render_markdown_html,
@@ -90,11 +87,6 @@ class MainWindow(QMainWindow):
         self._simple_save_timer.setSingleShot(True)
         self._simple_save_timer.setInterval(600)
         self._simple_save_timer.timeout.connect(self._auto_save_simple)
-
-        self._llm_provider = LLMProvider()
-        self._llm_provider.result_ready.connect(self._on_llm_result)
-        self._llm_provider.error_occurred.connect(self._on_llm_error)
-        self._current_llm_action = None
 
         self._build_ui()
         self._build_menus()
@@ -558,21 +550,6 @@ class MainWindow(QMainWindow):
         self._act_replace.triggered.connect(self._replace_text)
         self._edit_menu.addAction(self._act_replace)
 
-        # AI
-        self._ai_menu = mb.addMenu("")
-        self._act_ai_summarize = QAction(self)
-        self._act_ai_summarize.triggered.connect(lambda: self._trigger_llm("summarize"))
-        self._ai_menu.addAction(self._act_ai_summarize)
-        self._act_ai_improve = QAction(self)
-        self._act_ai_improve.triggered.connect(lambda: self._trigger_llm("improve"))
-        self._ai_menu.addAction(self._act_ai_improve)
-        self._act_ai_fix = QAction(self)
-        self._act_ai_fix.triggered.connect(lambda: self._trigger_llm("fix"))
-        self._ai_menu.addAction(self._act_ai_fix)
-        self._act_ai_continue = QAction(self)
-        self._act_ai_continue.triggered.connect(lambda: self._trigger_llm("continue"))
-        self._ai_menu.addAction(self._act_ai_continue)
-
         # View and mode
         self._view_menu = mb.addMenu("")
         self._mode_group = QActionGroup(self)
@@ -748,11 +725,6 @@ class MainWindow(QMainWindow):
         self._act_redo.setText(t("redo"))
         self._act_find.setText(t("find"))
         self._act_replace.setText(t("replace"))
-        self._ai_menu.setTitle(t("ai_menu", "AI"))
-        self._act_ai_summarize.setText(t("ai_summarize", "Summarize Selection"))
-        self._act_ai_improve.setText(t("ai_improve", "Improve Writing"))
-        self._act_ai_fix.setText(t("ai_fix", "Fix Code"))
-        self._act_ai_continue.setText(t("ai_continue", "Continue Writing"))
         self._act_simple_mode.setText(t("simple_mode"))
         self._act_detailed_mode.setText(t("detailed_mode"))
         self._view_menu.setTitle(t("view"))
@@ -794,66 +766,6 @@ class MainWindow(QMainWindow):
         self._show_view_mode(s.view_mode)
         self._update_preview()
         
-        self._llm_provider.api_url = s.llm_api_url
-        self._llm_provider.api_key = s.llm_api_key
-        self._llm_provider.model_name = s.llm_model
-        ai_enabled = bool(s.llm_api_url)
-        self._ai_menu.setEnabled(ai_enabled)
-        
-    def _trigger_llm(self, action_type: str) -> None:
-        editor = self._simple_content if self._simple_editor_is_active() else self._content_edit
-        cursor = editor.textCursor()
-        
-        if cursor.hasSelection():
-            text = cursor.selectedText().replace("\u2029", "\n")
-        else:
-            text = editor.toPlainText()
-            
-        if not text.strip():
-            return
-            
-        self._current_llm_action = action_type
-        
-        # We need a progress dialog or some feedback here, but for now we just show a message or status
-        self._statusbar.showMessage("Running AI...", 0)
-        
-        if action_type == "summarize":
-            self._llm_provider.run_async(f"Please summarize the following text:\n\n{text}", "You are a helpful assistant that summarizes text concisely.")
-        elif action_type == "improve":
-            self._llm_provider.run_async(f"Improve the following text:\n\n{text}", "You are an expert editor. Improve the grammar, clarity, and flow of the text. Output ONLY the improved text.")
-        elif action_type == "fix":
-            self._llm_provider.run_async(f"Fix the following code:\n\n{text}", "You are an expert programmer. Fix the bugs and formatting in the provided code. Output ONLY the fixed code without any conversational text or markdown blocks if not necessary.")
-        elif action_type == "continue":
-            self._llm_provider.run_async(f"Please continue the following text in the same style and tone:\n\n{text}", "You are a helpful assistant that continues the writing seamlessly.")
-
-    def _on_llm_result(self, result: str) -> None:
-        self._statusbar.clearMessage()
-        editor = self._simple_content if self._simple_editor_is_active() else self._content_edit
-        cursor = editor.textCursor()
-        
-        original_text = ""
-        if cursor.hasSelection():
-            original_text = cursor.selectedText().replace("\u2029", "\n")
-        else:
-            original_text = editor.toPlainText()
-
-        dialog = LLMResultDialog(original_text, result, self._i18n, self)
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            new_text = dialog.new_text
-            if cursor.hasSelection():
-                cursor.insertText(new_text)
-            else:
-                if self._current_llm_action == "continue":
-                    cursor.movePosition(QTextCursor.MoveOperation.End)
-                    cursor.insertText("\n" + new_text)
-                else:
-                    editor.setPlainText(new_text)
-            self._schedule_save()
-
-    def _on_llm_error(self, error: str) -> None:
-        self._statusbar.clearMessage()
-        QMessageBox.warning(self, "AI Error", f"An error occurred:\n{error}")
-
     def _set_toolbar_action_visible(self, key: str, visible: bool) -> None:
         """Add or remove a tool from the compact editor toolbar."""
         selected = [

@@ -39,7 +39,6 @@ For Fedora, Arch Linux, Manjaro, or if you prefer a portable app without install
 | Feature | Description |
 |---|---|
 | **Markdown Editor** | Pygments-highlighted fenced code in the editor and matching live preview |
-| **AI Assistant (LLM)** | Native integration with Gemini/OpenAI for text generation, translation, and grammar checking |
 | **Git Versioning** | Automatic, invisible Git versioning (Time Machine) for all your notes |
 | **Zen Mode** | Distraction-free full-screen writing environment (`F11` or `Ctrl+Shift+Z`) |
 | **Command Palette** | Sublime/VSCode style command palette (`Ctrl+P`) for lightning-fast navigation |

@@ -45,7 +45,6 @@
   "confirm_delete_title": "Notu Sil",
   "yes": "Evet",
   "no": "Hayır",
-  "cancel": "İptal",
   "save": "Kaydet",
   "close": "Kapat",
   "theme": "Tema",
@@ -141,20 +140,5 @@
   "list": "Liste",
   "quit": "Çıkış",
   "zen_mode": "Zen Modu",
-  "ai_menu": "Yapay Zeka",
-  "ai_summarize": "Seçimi Özetle",
-  "ai_improve": "Yazımı İyileştir",
-  "ai_fix": "Kodu Düzelt",
-  "ai_continue": "Yazmaya Devam Et",
-  "ai_settings": "YZ Ayarları",
-  "llm_privacy_warning": "Metniniz yapılandırılan API uç noktasına gönderilecektir.",
-  "llm_api_url": "API URL",
-  "llm_api_key": "API Anahtarı",
-  "llm_model": "Model",
-  "ai_result_title": "YZ Sonucu",
-  "original_text": "Orijinal",
-  "ai_text": "YZ Çıktısı",
-  "apply": "Uygula",
   "exit_zen_mode": "Zen Modundan Çık (Esc)"
 }
-

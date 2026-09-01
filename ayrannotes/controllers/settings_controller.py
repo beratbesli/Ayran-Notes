@@ -125,18 +125,6 @@ class SettingsController(QObject):
         self._settings.toolbar_actions = list(dict.fromkeys(actions))
         self._apply()
 
-    def set_llm_api_url(self, url: str) -> None:
-        self._settings.llm_api_url = url
-        self._apply()
-
-    def set_llm_api_key(self, key: str) -> None:
-        self._settings.llm_api_key = key
-        self._apply()
-
-    def set_llm_model(self, model: str) -> None:
-        self._settings.llm_model = model
-        self._apply()
-
     def set_view_mode(self, mode: str) -> None:
         """Switch between the simple cards view and the detailed workspace."""
         if mode not in {"simple", "detailed"}:

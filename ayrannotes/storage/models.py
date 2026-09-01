@@ -117,9 +117,6 @@ class AppSettings:
     notes_directory_id: str = ""
     compact_window_migrated: bool = False
     main_splitter_sizes: list[int] = field(default_factory=list)
-    llm_api_url: str = ""
-    llm_api_key: str = ""
-    llm_model: str = ""
 
     def to_dict(self) -> dict:
         """Serialize to a plain dictionary."""
@@ -142,9 +139,6 @@ class AppSettings:
             "notes_directory_id": self.notes_directory_id,
             "compact_window_migrated": self.compact_window_migrated,
             "main_splitter_sizes": self.main_splitter_sizes,
-            "llm_api_url": self.llm_api_url,
-            "llm_api_key": self.llm_api_key,
-            "llm_model": self.llm_model,
         }
 
     @classmethod
@@ -164,10 +158,4 @@ class AppSettings:
             s.notes_directory_id = ""
         if not isinstance(s.main_splitter_sizes, list):
             s.main_splitter_sizes = []
-        if not isinstance(s.llm_api_url, str):
-            s.llm_api_url = ""
-        if not isinstance(s.llm_api_key, str):
-            s.llm_api_key = ""
-        if not isinstance(s.llm_model, str):
-            s.llm_model = ""
         return s

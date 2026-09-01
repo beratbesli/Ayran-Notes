@@ -42,7 +42,7 @@ Priority: optional
 Architecture: amd64
 Maintainer: Berat Besli
 Description: A lightweight, customizable, and modern note-taking application for Linux.
- Built with Python 3 and PyQt6. Features Markdown support, LLM integration, and Git versioning.
+ Built with Python 3 and PyQt6. Features Markdown support and Git versioning.
 CONTROL
 
 echo "🔨 Building .deb package..."

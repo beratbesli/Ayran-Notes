@@ -148,34 +148,6 @@ class SettingsDialog(QDialog):
 
         self._tabs.addTab(general, "")
         
-        # ── AI / LLM tab ─────────────────────────────────────────────
-        llm = QWidget()
-        form_l = QFormLayout(llm)
-        form_l.setContentsMargins(16, 16, 16, 16)
-        form_l.setSpacing(14)
-        
-        self._llm_privacy_label = QLabel()
-        self._llm_privacy_label.setWordWrap(True)
-        form_l.addRow(self._llm_privacy_label)
-        
-        self._llm_api_url_edit = QLineEdit()
-        self._llm_api_url_edit.setText(self._ctrl.settings.llm_api_url)
-        self._llm_api_url_label = QLabel()
-        form_l.addRow(self._llm_api_url_label, self._llm_api_url_edit)
-        
-        self._llm_api_key_edit = QLineEdit()
-        self._llm_api_key_edit.setEchoMode(QLineEdit.EchoMode.Password)
-        self._llm_api_key_edit.setText(self._ctrl.settings.llm_api_key)
-        self._llm_api_key_label = QLabel()
-        form_l.addRow(self._llm_api_key_label, self._llm_api_key_edit)
-        
-        self._llm_model_edit = QLineEdit()
-        self._llm_model_edit.setText(self._ctrl.settings.llm_model)
-        self._llm_model_label = QLabel()
-        form_l.addRow(self._llm_model_label, self._llm_model_edit)
-        
-        self._tabs.addTab(llm, "")
-
         # ── Bottom buttons ──────────────────────────────────────────
         btn_row = QHBoxLayout()
         btn_row.addStretch()
@@ -204,9 +176,6 @@ class SettingsDialog(QDialog):
         self._notes_dir_default.clicked.connect(
             self._on_default_notes_directory
         )
-        self._llm_api_url_edit.textChanged.connect(self._on_llm_api_url)
-        self._llm_api_key_edit.textChanged.connect(self._on_llm_api_key)
-        self._llm_model_edit.textChanged.connect(self._on_llm_model)
         self._reset_btn.clicked.connect(self._on_reset)
         self._close_btn.clicked.connect(self.accept)
 
@@ -274,15 +243,6 @@ class SettingsDialog(QDialog):
             str(self._ctrl.resolved_notes_directory)
         )
 
-    def _on_llm_api_url(self, text: str) -> None:
-        self._ctrl.set_llm_api_url(text)
-
-    def _on_llm_api_key(self, text: str) -> None:
-        self._ctrl.set_llm_api_key(text)
-
-    def _on_llm_model(self, text: str) -> None:
-        self._ctrl.set_llm_model(text)
-
     def _on_reset(self) -> None:
         self._ctrl.reset_defaults()
         # Sync UI widgets with new defaults
@@ -294,9 +254,6 @@ class SettingsDialog(QDialog):
         self._notes_dir_edit.setText(
             str(self._ctrl.resolved_notes_directory)
         )
-        self._llm_api_url_edit.setText(s.llm_api_url)
-        self._llm_api_key_edit.setText(s.llm_api_key)
-        self._llm_model_edit.setText(s.llm_model)
         self._update_accent_preview()
         self._i18n.set_language(s.language)
 
@@ -324,12 +281,6 @@ class SettingsDialog(QDialog):
         self._notes_dir_label.setText(t("notes_directory"))
         self._notes_dir_browse.setText(t("browse"))
         self._notes_dir_default.setText(t("use_default"))
-        
-        self._tabs.setTabText(2, t("ai_settings"))
-        self._llm_privacy_label.setText(t("llm_privacy_warning"))
-        self._llm_api_url_label.setText(t("llm_api_url"))
-        self._llm_api_key_label.setText(t("llm_api_key"))
-        self._llm_model_label.setText(t("llm_model"))
         
         self._reset_btn.setText(t("reset_defaults"))
         self._close_btn.setText(t("close"))
