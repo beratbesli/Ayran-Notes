@@ -27,6 +27,44 @@ from ayrannotes.storage.models import Note
 from ayrannotes.ui.markdown_support import render_markdown_html
 
 
+def _build_diff_html(
+    old: str,
+    current: str,
+    *,
+    old_label: str,
+    current_label: str,
+    no_changes: str,
+    text_color: str,
+) -> str:
+    rows = []
+    for line in difflib.unified_diff(
+        old.splitlines(),
+        current.splitlines(),
+        fromfile=old_label,
+        tofile=current_label,
+        lineterm="",
+    ):
+        escaped = html.escape(line)
+        if line.startswith("+") and not line.startswith("+++"):
+            css = "diff-add"
+        elif line.startswith("-") and not line.startswith("---"):
+            css = "diff-remove"
+        elif line.startswith("@@"):
+            css = "diff-header"
+        else:
+            css = "diff-neutral"
+        rows.append(f'<div class="{css}">{escaped or " "}</div>')
+    if not rows:
+        rows.append(f'<div class="diff-neutral">{html.escape(no_changes)}</div>')
+    return """<html><head><style>
+    body { font-family: monospace; white-space: pre-wrap; }
+    .diff-add { color: #77c98a; background: rgba(60, 160, 80, .16); }
+    .diff-remove { color: #ef8585; background: rgba(190, 60, 60, .16); }
+    .diff-header { color: #8ba9e8; }
+    .diff-neutral { color: """ + text_color + """; }
+    </style></head><body>""" + "".join(rows) + "</body></html>"
+
+
 class _HistoryWorker(QThread):
     loaded = pyqtSignal(object)
 
@@ -44,7 +82,7 @@ class _HistoryWorker(QThread):
 
 
 class _VersionWorker(QThread):
-    loaded = pyqtSignal(object, object)
+    loaded = pyqtSignal(object, object, str)
 
     def __init__(
         self,
@@ -52,19 +90,39 @@ class _VersionWorker(QThread):
         note_id: str,
         commit_hash: str,
         record: dict,
+        current_content: str,
+        old_label: str,
+        current_label: str,
+        no_changes: str,
+        text_color: str,
     ) -> None:
         super().__init__()
         self._controller = controller
         self._note_id = note_id
         self._commit_hash = commit_hash
         self._record = record
+        self._current_content = current_content
+        self._old_label = old_label
+        self._current_label = current_label
+        self._no_changes = no_changes
+        self._text_color = text_color
 
     def run(self) -> None:
         try:
             note = self._controller.get_note_version(self._note_id, self._commit_hash)
         except (OSError, ValueError, TypeError):
             note = None
-        self.loaded.emit(self._record, note)
+        diff_html = ""
+        if note is not None:
+            diff_html = _build_diff_html(
+                note.content,
+                self._current_content,
+                old_label=self._old_label,
+                current_label=self._current_label,
+                no_changes=self._no_changes,
+                text_color=self._text_color,
+            )
+        self.loaded.emit(self._record, note, diff_html)
 
 
 class HistoryDialog(QDialog):
@@ -230,12 +288,17 @@ class HistoryDialog(QDialog):
             self._current_note.id,
             commit_hash,
             record,
+            self._current_note.content,
+            self._i18n.t("selected_version"),
+            self._i18n.t("current_version"),
+            self._i18n.t("no_changes"),
+            "#d8dee9" if self._settings_controller.resolved_theme == "dark" else "#273142",
         )
         self._workers.append(self._version_worker)
         self._version_worker.loaded.connect(self._version_loaded)
         self._version_worker.start()
 
-    def _version_loaded(self, record: dict, note: Note | None) -> None:
+    def _version_loaded(self, record: dict, note: Note | None, diff_html: str) -> None:
         if record is not self._selected_record and record != self._selected_record:
             return
         self._selected_version = note
@@ -260,7 +323,7 @@ class HistoryDialog(QDialog):
             )
         )
         self._source.setPlainText(self._serialize_for_display(note))
-        self._diff.setHtml(self._build_diff(note.content, self._current_note.content))
+        self._diff.setHtml(diff_html)
         self._restore_button.setEnabled(not self._is_current_record(record))
 
     def _is_current_record(self, record: dict) -> bool:
@@ -272,34 +335,18 @@ class HistoryDialog(QDialog):
         return serialize_note(note)
 
     def _build_diff(self, old: str, current: str) -> str:
-        rows = []
-        for line in difflib.unified_diff(
-            old.splitlines(),
-            current.splitlines(),
-            fromfile=self._i18n.t("selected_version"),
-            tofile=self._i18n.t("current_version"),
-            lineterm="",
-        ):
-            escaped = html.escape(line)
-            if line.startswith("+") and not line.startswith("+++"):
-                css = "diff-add"
-            elif line.startswith("-") and not line.startswith("---"):
-                css = "diff-remove"
-            elif line.startswith("@@"):
-                css = "diff-header"
-            else:
-                css = "diff-neutral"
-            rows.append(f'<div class="{css}">{escaped or " "}</div>')
-        if not rows:
-            rows.append(f'<div class="diff-neutral">{html.escape(self._i18n.t("no_changes"))}</div>')
-        text_color = "#d8dee9" if self._settings_controller.resolved_theme == "dark" else "#273142"
-        return """<html><head><style>
-        body { font-family: monospace; white-space: pre-wrap; }
-        .diff-add { color: #77c98a; background: rgba(60, 160, 80, .16); }
-        .diff-remove { color: #ef8585; background: rgba(190, 60, 60, .16); }
-        .diff-header { color: #8ba9e8; }
-        .diff-neutral { color: """ + text_color + """; }
-        </style></head><body>""" + "".join(rows) + "</body></html>"
+        return _build_diff_html(
+            old,
+            current,
+            old_label=self._i18n.t("selected_version"),
+            current_label=self._i18n.t("current_version"),
+            no_changes=self._i18n.t("no_changes"),
+            text_color=(
+                "#d8dee9"
+                if self._settings_controller.resolved_theme == "dark"
+                else "#273142"
+            ),
+        )
 
     def _restore_selected(self) -> None:
         if not self._selected_record or not self._selected_version:

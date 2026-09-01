@@ -218,6 +218,17 @@ class StorageEngineTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 self.storage.restore_note_version(note.id, "invalid-hash")
 
+    def test_historical_commit_must_belong_to_the_requested_note(self) -> None:
+        with patch.object(gv.git_manager, "schedule_commit", side_effect=self._immediate_commit):
+            first = Note(title="First", content="one")
+            second = Note(title="Second", content="two")
+            self.storage.save_note(first)
+            self.storage.save_note(second)
+            second_history = self.storage.get_note_history(second.id)
+            self.assertIsNone(self.storage.get_note_version(first.id, second_history[0]["hash"]))
+            with self.assertRaises(ValueError):
+                self.storage.restore_note_version(first.id, second_history[0]["hash"])
+
     def test_restore_does_not_touch_history_when_current_file_was_deleted_externally(self) -> None:
         with patch.object(gv.git_manager, "schedule_commit", side_effect=self._immediate_commit):
             note = Note(title="External delete", content="keep history")

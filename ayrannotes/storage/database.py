@@ -320,6 +320,8 @@ class StorageEngine:
         """Read and parse a note exactly as it existed in a Git commit."""
         self._validate_active_notes_directory()
         path = self._note_path(note_id)
+        if not self._is_note_history_commit(path, commit_hash):
+            return None
         raw = git_manager.get_file_version(self.notes_dir, path, commit_hash)
         if not raw:
             return None
@@ -356,6 +358,12 @@ class StorageEngine:
     def _parent_commit(self, commit_hash: str) -> str:
         """Return the first parent of a validated deletion commit."""
         return git_manager.get_parent_commit(self.notes_dir, commit_hash)
+
+    def _is_note_history_commit(self, path: Path, commit_hash: str) -> bool:
+        return any(
+            entry.get("hash") == commit_hash
+            for entry in git_manager.get_history(self.notes_dir, path)
+        )
 
     def save_note(self, note: Note) -> None:
         """Create or update a note on disk."""
@@ -406,6 +414,8 @@ class StorageEngine:
         previous_bytes = path.read_bytes()
         if expected_revision and self._revision(previous_bytes) != expected_revision:
             raise StorageConflictError(f"Note changed outside Ayran Notes: {note_id}")
+        if not self._is_note_history_commit(path, commit_hash):
+            raise ValueError("Selected version does not belong to this note")
         raw = git_manager.get_file_version(self.notes_dir, path, commit_hash)
         if not raw:
             raise ValueError("Selected note version could not be read")
@@ -433,6 +443,11 @@ class StorageEngine:
         if source_path.exists() or source_path.is_symlink():
             if new_note_id is None:
                 raise FileExistsError(f"A note with ID already exists: {note_id}")
+        if not any(
+            entry.get("note_id") == note_id and entry.get("hash") == commit_hash
+            for entry in git_manager.list_deleted_notes(self.notes_dir)
+        ):
+            raise ValueError("Selected deletion does not belong to this note")
         parent = git_manager.get_parent_commit(self.notes_dir, commit_hash)
         if not parent:
             raise ValueError("Deleted note version has no readable parent")
