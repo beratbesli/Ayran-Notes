@@ -53,30 +53,30 @@ class GitVersioning:
 
 
     def commit_change(self, notes_dir: Path, message: str) -> bool:
-        """Commit changes in the notes directory."""
+        """Commit Markdown note changes without touching other files."""
         if not self.is_repo(notes_dir):
             return False
 
         try:
             subprocess.run(
-                ["git", "add", "-A"],
+                ["git", "add", "-A", "--", "*.md"],
                 cwd=notes_dir,
                 check=True,
                 capture_output=True
             )
-            
-            # Check if there are any changes to commit
-            status = subprocess.run(
-                ["git", "status", "--porcelain"],
+
+            # Check only the staged Markdown changes. Unrelated files may
+            # exist in a shared notes directory and must remain untouched.
+            staged = subprocess.run(
+                ["git", "diff", "--cached", "--quiet"],
                 cwd=notes_dir,
-                check=True,
+                check=False,
                 capture_output=True,
-                text=True
             )
-            
-            if not status.stdout.strip():
-                return True # Nothing to commit
-                
+
+            if staged.returncode == 0:
+                return True  # Nothing to commit
+
             subprocess.run(
                 ["git", "commit", "-m", message],
                 cwd=notes_dir,

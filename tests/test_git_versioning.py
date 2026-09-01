@@ -2,6 +2,7 @@
 
 import tempfile
 import unittest
+import subprocess
 from pathlib import Path
 from unittest.mock import patch
 
@@ -57,6 +58,33 @@ class GitVersioningTests(unittest.TestCase):
         # Test getting file version
         v1 = git_manager.get_file_version(notes_dir, file1, history[1]["hash"])
         self.assertEqual(v1.strip(), "Hello World")
+
+    def test_commit_change_ignores_non_markdown_files(self) -> None:
+        git_manager = GitVersioning()
+        notes_dir = self.tmp_path / "notes"
+        notes_dir.mkdir()
+        git_manager.init_repo(notes_dir)
+
+        (notes_dir / "note.md").write_text("Markdown", encoding="utf-8")
+        (notes_dir / "settings.json").write_text("{}", encoding="utf-8")
+        (notes_dir / "attachment.pdf").write_bytes(b"pdf")
+
+        self.assertTrue(git_manager.commit_change(notes_dir, "Create: note"))
+        tracked = subprocess.run(
+            ["git", "ls-tree", "-r", "--name-only", "HEAD"],
+            cwd=notes_dir,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.splitlines()
+        self.assertEqual(tracked, ["note.md"])
+
+        (notes_dir / "settings.json").write_text('{"changed": true}', encoding="utf-8")
+        self.assertTrue(git_manager.commit_change(notes_dir, "Metadata change"))
+        self.assertEqual(
+            len(git_manager.get_history(notes_dir)),
+            1,
+        )
 
     def test_storage_engine_integration(self) -> None:
         commits = []
