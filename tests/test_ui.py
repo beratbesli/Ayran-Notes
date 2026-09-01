@@ -1,6 +1,7 @@
 """Headless regression tests for the focused editor UI."""
 
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest.mock import PropertyMock, patch
@@ -12,6 +13,8 @@ from ayrannotes.controllers.settings_controller import SettingsController
 from ayrannotes.localization.i18n import I18n
 from ayrannotes.storage.database import StorageEngine
 from ayrannotes.ui.main_window import MainWindow
+from ayrannotes.ui.history_dialog import DeletedNotesDialog, HistoryDialog
+import ayrannotes.storage.git_versioning as gv
 
 
 class MainWindowTests(unittest.TestCase):
@@ -28,6 +31,14 @@ class MainWindowTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.window.close()
         self.temporary.cleanup()
+
+    def _wait_for_thread(self, thread, timeout: float = 3.0) -> None:
+        deadline = time.monotonic() + timeout
+        while thread.isRunning() and time.monotonic() < deadline:
+            self.app.processEvents()
+            time.sleep(0.01)
+        self.app.processEvents()
+        self.assertFalse(thread.isRunning())
 
     def test_startup_view_is_simple(self) -> None:
         self.assertIs(self.window._view_stack.currentWidget(), self.window._simple_view)
@@ -137,6 +148,62 @@ class MainWindowTests(unittest.TestCase):
         ):
             self.window._update_preview(reset_scroll=True)
         self.assertEqual(render.call_args.kwargs["theme"], "light")
+
+    def test_history_dialog_previews_diff_and_restores_selected_version(self) -> None:
+        def immediate_commit(notes_dir, message, delay=5.0):
+            return gv.git_manager.commit_change(notes_dir, message)
+
+        with patch.object(gv.git_manager, "schedule_commit", side_effect=immediate_commit):
+            note = self.notes.create_note("History")
+            note.content = "old body"
+            self.notes.save_note(note)
+            note.content = "current body"
+            self.notes.save_note(note)
+            dialog = HistoryDialog(
+                self.notes,
+                self.storage.get_note(note.id),
+                self.window._i18n,
+                self.window._settings_ctrl,
+                self.window,
+            )
+            self._wait_for_thread(dialog._history_worker)
+            self.assertEqual(dialog._history_list.count(), 3)
+            dialog._history_list.setCurrentRow(2)
+            self._wait_for_thread(dialog._version_worker)
+            self.assertEqual(dialog._selected_version.content, "")
+            self.assertTrue(dialog._restore_button.isEnabled())
+            self.assertIn("current body", dialog._diff.toHtml())
+            with patch.object(QMessageBox, "question", return_value=QMessageBox.StandardButton.Yes):
+                dialog._restore_selected()
+            self.assertEqual(dialog.restored_note.content, "")
+            self.assertEqual(self.storage.get_note(note.id).content, "")
+            dialog.close()
+
+    def test_deleted_notes_dialog_recovers_note_from_local_history(self) -> None:
+        def immediate_commit(notes_dir, message, delay=5.0):
+            return gv.git_manager.commit_change(notes_dir, message)
+
+        with patch.object(gv.git_manager, "schedule_commit", side_effect=immediate_commit):
+            note = self.notes.create_note("Deleted")
+            note.content = "recoverable"
+            self.notes.save_note(note)
+            self.notes.delete_note(note.id)
+            dialog = DeletedNotesDialog(self.notes, self.window._i18n, self.window)
+            self._wait_for_thread(dialog._worker)
+            self.assertEqual(dialog._list.count(), 1)
+            with patch.object(QMessageBox, "question", return_value=QMessageBox.StandardButton.Yes):
+                dialog._restore_selected()
+            self.assertEqual(dialog.restored_note.id, note.id)
+            self.assertEqual(self.storage.get_note(note.id).content, "recoverable")
+            dialog.close()
+
+    def test_history_menu_is_available_without_adding_simple_controls(self) -> None:
+        note = self.notes.create_note("History menu")
+        self.window._load_simple_note(note.id)
+        self.assertTrue(self.window._act_history.isEnabled())
+        self.assertIn("History", self.window._act_history.text())
+        self.window._i18n.set_language("tr")
+        self.assertIn("Geçmiş", self.window._act_history.text())
 
 
 if __name__ == "__main__":

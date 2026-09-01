@@ -31,6 +31,11 @@ class NoteController(QObject):
         """Return the directory that is currently the note source of truth."""
         return self._storage.notes_dir
 
+    @property
+    def git_history_available(self) -> bool:
+        """Whether local Git history is available for the active notes folder."""
+        return self._storage.git_history_available
+
     # ------------------------------------------------------------------
     # Read
     # ------------------------------------------------------------------

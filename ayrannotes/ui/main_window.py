@@ -42,6 +42,7 @@ from ayrannotes.importers import import_note
 from ayrannotes.localization.i18n import I18n
 from ayrannotes.storage.models import AppSettings, Note
 from ayrannotes.ui.floating_toolbar import FloatingToolbar
+from ayrannotes.ui.history_dialog import DeletedNotesDialog, HistoryDialog
 from ayrannotes.ui.markdown_support import MarkdownSyntaxHighlighter, render_markdown_html
 from ayrannotes.ui.settings_dialog import SettingsDialog
 from ayrannotes.ui.themes import build_stylesheet
@@ -351,6 +352,12 @@ class MainWindow(QMainWindow):
         self._act_delete.setShortcut(QKeySequence("Ctrl+Delete"))
         self._act_delete.triggered.connect(self._on_delete_note)
         self._file_menu.addAction(self._act_delete)
+        self._act_history = QAction(self)
+        self._act_history.triggered.connect(self._open_history)
+        self._file_menu.addAction(self._act_history)
+        self._act_deleted_notes = QAction(self)
+        self._act_deleted_notes.triggered.connect(self._open_deleted_notes)
+        self._file_menu.addAction(self._act_deleted_notes)
         self._file_menu.addSeparator()
         self._act_import = QAction(self)
         self._act_import.setShortcut(QKeySequence("Ctrl+Shift+I"))
@@ -475,6 +482,8 @@ class MainWindow(QMainWindow):
         self._file_menu.setTitle(t("file"))
         self._act_new.setText(t("new_note"))
         self._act_delete.setText(t("delete_note"))
+        self._act_history.setText(t("history_title"))
+        self._act_deleted_notes.setText(t("deleted_notes"))
         self._act_import.setText(t("import"))
         self._act_export.setText(t("export"))
         self._act_quit.setText(t("close"))
@@ -495,6 +504,7 @@ class MainWindow(QMainWindow):
             action.setToolTip(t(key))
         self._refresh_note_views()
         self._update_status()
+        self._update_history_actions()
 
     def _apply_settings(self, settings: AppSettings) -> None:
         theme = self._settings_ctrl.resolved_theme
@@ -653,6 +663,7 @@ class MainWindow(QMainWindow):
         self._update_statusbar_visibility()
         self._simple_content.setFocus()
         self._update_status()
+        self._update_history_actions()
 
     def _on_simple_new_note(self) -> None:
         if not self._flush_all_edits():
@@ -675,6 +686,7 @@ class MainWindow(QMainWindow):
         self._update_statusbar_visibility()
         self._refresh_simple_cards()
         self._update_status()
+        self._update_history_actions()
 
     def _is_empty_simple_note(self, note: Note, title: str | None = None, content: str | None = None) -> bool:
         visible_title = note.title if title is None else title
@@ -755,6 +767,7 @@ class MainWindow(QMainWindow):
         self._dirty = False
         self._update_preview(reset_scroll=True)
         self._update_status()
+        self._update_history_actions()
 
     def _on_new_note(self) -> None:
         if self._view_stack.currentWidget() is self._simple_view:
@@ -800,6 +813,7 @@ class MainWindow(QMainWindow):
         self._update_statusbar_visibility()
         self._refresh_note_views()
         self._update_status()
+        self._update_history_actions()
 
     def _delete_specific_note(self, note_id: str) -> None:
         reply = QMessageBox.question(
@@ -818,6 +832,56 @@ class MainWindow(QMainWindow):
     def _refresh_note_views(self) -> None:
         self._refresh_note_list()
         self._refresh_simple_cards()
+
+    def _update_history_actions(self) -> None:
+        if not hasattr(self, "_act_history"):
+            return
+        self._act_history.setEnabled(self._current_note is not None)
+
+    def _open_history(self) -> None:
+        if not self._current_note:
+            QMessageBox.information(
+                self,
+                self._i18n.t("history_title"),
+                self._i18n.t("select_note_for_history"),
+            )
+            return
+        if not self._flush_all_edits():
+            return
+        note = self._note_ctrl.get_note(self._current_note.id)
+        if not note:
+            QMessageBox.warning(
+                self,
+                self._i18n.t("history_title"),
+                self._i18n.t("version_unavailable"),
+            )
+            return
+        dialog = HistoryDialog(
+            self._note_ctrl,
+            note,
+            self._i18n,
+            self._settings_ctrl,
+            self,
+        )
+        dialog.exec()
+        if dialog.restored_note:
+            self._load_restored_note(dialog.restored_note.id)
+
+    def _open_deleted_notes(self) -> None:
+        if not self._flush_all_edits():
+            return
+        dialog = DeletedNotesDialog(self._note_ctrl, self._i18n, self)
+        dialog.exec()
+        if dialog.restored_note:
+            self._load_restored_note(dialog.restored_note.id)
+
+    def _load_restored_note(self, note_id: str) -> None:
+        self._current_note = None
+        self._refresh_note_views()
+        if self._view_stack.currentWidget() is self._simple_view:
+            self._load_simple_note(note_id)
+        else:
+            self._load_note(note_id)
 
     # ------------------------------------------------------------------
     # Editor tools and Markdown import/export
@@ -1090,6 +1154,7 @@ class MainWindow(QMainWindow):
             self._clear_editor_fields()
             self._simple_stack.setCurrentWidget(self._simple_home)
             self._refresh_note_views()
+            self._update_history_actions()
 
     def _on_about(self) -> None:
         QMessageBox.about(self, self._i18n.t("about"), self._i18n.t("about_text"))

@@ -307,6 +307,15 @@ class StorageEngine:
         path = self._note_path(note_id)
         return git_manager.get_history(self.notes_dir, path, limit=limit)
 
+    @property
+    def git_history_available(self) -> bool:
+        """Whether local Git history can currently be queried."""
+        try:
+            self._validate_active_notes_directory()
+        except OSError:
+            return False
+        return git_manager.is_repo(self.notes_dir)
+
     def get_note_version(self, note_id: str, commit_hash: str) -> Note | None:
         """Read and parse a note exactly as it existed in a Git commit."""
         self._validate_active_notes_directory()
