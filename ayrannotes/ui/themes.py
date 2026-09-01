@@ -295,19 +295,6 @@ QPushButton#navigationMoreButton::menu-indicator {{
     padding: 7px 8px 3px 8px;
 }}
 
-/* Resizable folders / notes divider */
-QSplitter#sidebarSectionSplitter {{
-    background-color: transparent;
-}}
-QSplitter#sidebarSectionSplitter::handle:vertical {{
-    height: 9px;
-    background-color: transparent;
-    border-top: 1px solid {p["separator"]};
-    margin: 4px 8px 0 8px;
-}}
-QSplitter#sidebarSectionSplitter::handle:vertical:hover {{
-    border-top: 2px solid {accent};
-}}
 
 /* Lists */
 QListWidget {{
@@ -517,18 +504,6 @@ QPushButton#accentBtn:pressed {{
     background-color: {p["accent_pressed"]};
     border-color: {p["accent_pressed"]};
 }}
-QPushButton#zenExitButton {{
-    background-color: rgba(120, 120, 128, 0.25);
-    color: {p["text"]};
-    border: 1px solid {p["border"]};
-    border-radius: 14px;
-    padding: 6px 14px;
-    font-size: {size - 1}px;
-    font-weight: 500;
-}}
-QPushButton#zenExitButton:hover {{
-    background-color: rgba(120, 120, 128, 0.45);
-}}
 
 
 /* Editor and preview */
@@ -732,45 +707,6 @@ QToolTip {{
     padding: 5px 8px;
     font-size: {max(8, size - 2)}px;
 }}
-#commandPalette {{
-    background-color: {p["surface"]};
-    border: 1px solid {p["border"]};
-    border-radius: 12px;
-}}
-#commandPaletteSearch {{
-    min-height: 24px;
-    background-color: {p["raised"]};
-    color: {p["text"]};
-    border: 1px solid {p["border"]};
-    border-radius: 8px;
-    padding: 8px 14px;
-    font-size: {size}px;
-    selection-background-color: {accent_selection};
-}}
-#commandPaletteSearch:focus {{
-    border-color: {accent};
-}}
-#commandPaletteList {{
-    background-color: transparent;
-    border: none;
-    outline: none;
-}}
-#commandPaletteList::item {{
-    color: {p["secondary"]};
-    background-color: transparent;
-    border-radius: 8px;
-    padding: 10px 12px;
-    margin: 2px;
-}}
-#commandPaletteList::item:hover {{
-    color: {p["text"]};
-    background-color: {p["hover"]};
-}}
-#commandPaletteList::item:selected {{
-    color: {accent_ink};
-    background-color: {accent_soft};
-}}
-
 /* Floating Toolbar */
 #floatingToolbar {{
     background-color: {p["raised"]};

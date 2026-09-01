@@ -1,4 +1,4 @@
-"""Tests for note organization and filtering."""
+"""Tests for the focused note controller."""
 
 import tempfile
 import unittest
@@ -22,37 +22,29 @@ class NoteControllerTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.temporary.cleanup()
 
-    def test_favorites_archive_trash_and_restore_filters(self) -> None:
-        note = self.controller.create_note("Roadmap", "Work")
-        note.tags = ["planning", "release"]
-        self.controller.save_note(note)
+    def test_lists_all_notes_and_searches_title_and_content(self) -> None:
+        first = self.controller.create_note("Roadmap")
+        first.content = "Release planning"
+        self.controller.save_note(first)
+        second = self.controller.create_note("Personal")
+        second.content = "Weekend ideas"
+        self.controller.save_note(second)
 
-        self.controller.toggle_favorite(note.id)
-        self.assertEqual([item.id for item in self.controller.list_notes("__favorites__")], [note.id])
-        self.assertEqual([item.id for item in self.controller.search("release")], [note.id])
+        self.assertEqual(
+            {note.id for note in self.controller.list_notes()},
+            {first.id, second.id},
+        )
+        self.assertEqual([note.id for note in self.controller.search("release")], [first.id])
+        self.assertEqual([note.id for note in self.controller.search("personal")], [second.id])
 
-        self.controller.set_archived(note.id)
-        self.assertEqual(self.controller.list_notes("__all__"), [])
-        self.assertEqual([item.id for item in self.controller.list_notes("__archive__")], [note.id])
+    def test_delete_removes_only_the_selected_markdown_note(self) -> None:
+        note = self.controller.create_note("Temporary")
+        other = self.controller.create_note("Keep")
 
-        self.controller.move_to_trash(note.id)
-        self.assertEqual(self.controller.list_notes("__archive__"), [])
-        self.assertEqual([item.id for item in self.controller.list_notes("__trash__")], [note.id])
-
-        self.controller.restore_note(note.id)
-        self.assertEqual([item.id for item in self.controller.list_notes("__archive__")], [note.id])
-
-    def test_attachment_is_tracked_on_note(self) -> None:
-        note = self.controller.create_note("Files")
-        source = Path(self.temporary.name) / "report.txt"
-        source.write_text("content", encoding="utf-8")
-
-        destination = self.controller.add_attachment(note.id, source)
-
-        self.assertTrue(destination.is_file())
-        loaded = self.controller.get_note(note.id)
-        self.assertEqual(len(loaded.attachments), 1)
-        self.assertTrue(loaded.attachments[0].endswith("/report.txt"))
+        self.assertTrue(self.controller.delete_note(note.id))
+        self.assertIsNone(self.controller.get_note(note.id))
+        self.assertIsNotNone(self.controller.get_note(other.id))
+        self.assertFalse(self.controller.delete_note(note.id))
 
 
 if __name__ == "__main__":

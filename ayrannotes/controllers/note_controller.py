@@ -6,8 +6,6 @@ lifecycle operations and search/filter logic.
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from PyQt6.QtCore import QObject, pyqtSignal
 
 from ayrannotes.storage.database import StorageEngine
@@ -34,48 +32,26 @@ class NoteController(QObject):
     # Read
     # ------------------------------------------------------------------
 
-    def list_notes(self, folder: str | None = None) -> list[Note]:
-        """Return notes, optionally filtered by *folder*."""
-        notes = self._storage.list_notes()
-        if folder == "__trash__":
-            return [note for note in notes if note.is_trashed]
-        if folder == "__archive__":
-            return [note for note in notes if note.is_archived and not note.is_trashed]
-
-        notes = [note for note in notes if not note.is_archived and not note.is_trashed]
-        if folder == "__favorites__":
-            return [note for note in notes if note.is_favorite]
-        if folder and folder != "__all__":
-            notes = [n for n in notes if n.folder == folder]
-        return notes
+    def list_notes(self) -> list[Note]:
+        """Return every Markdown note, newest first."""
+        return self._storage.list_notes()
 
     def get_note(self, note_id: str) -> Note | None:
         """Load a single note."""
         return self._storage.get_note(note_id)
 
-    def search(self, query: str, folder: str | None = None) -> list[Note]:
+    def search(self, query: str) -> list[Note]:
         """Full-text search across title and content."""
         q = query.lower().strip()
         if not q:
-            return self.list_notes(folder)
+            return self.list_notes()
         return [
-            n for n in self.list_notes(folder)
+            n for n in self.list_notes()
             if (
                 q in n.title.lower()
                 or q in n.content.lower()
-                or any(q in tag.lower() for tag in n.tags)
             )
         ]
-
-    def get_folders(self) -> list[str]:
-        """Return sorted unique folder names."""
-        folders = {
-            note.folder
-            for note in self._storage.list_notes()
-            if not note.is_archived and not note.is_trashed
-        }
-        folders.add("General")
-        return sorted(folders)
 
     # ------------------------------------------------------------------
     # Write
@@ -84,16 +60,9 @@ class NoteController(QObject):
     def create_note(
         self,
         title: str = "Untitled",
-        folder: str = "General",
-        *,
-        simple_draft: bool = False,
     ) -> Note:
         """Create and persist a new empty note."""
-        note = Note(
-            title=title,
-            folder=folder,
-            is_simple_draft=simple_draft,
-        )
+        note = Note(title=title)
         self._storage.save_note(note)
         self.notes_changed.emit()
         self.note_saved.emit(note.id)
@@ -112,77 +81,3 @@ class NoteController(QObject):
             self.note_deleted.emit(note_id)
             self.notes_changed.emit()
         return ok
-
-    def toggle_pin(self, note_id: str) -> Note | None:
-        """Toggle the pinned state of a note."""
-        note = self._storage.get_note(note_id)
-        if note:
-            note.is_pinned = not note.is_pinned
-            self._storage.save_note(note)
-            self.notes_changed.emit()
-            return note
-        return None
-
-    def toggle_favorite(self, note_id: str) -> Note | None:
-        """Toggle whether a note appears in Favorites."""
-        note = self._storage.get_note(note_id)
-        if note:
-            note.is_favorite = not note.is_favorite
-            self._storage.save_note(note)
-            self.notes_changed.emit()
-            return note
-        return None
-
-    def set_archived(self, note_id: str, archived: bool = True) -> Note | None:
-        """Archive or unarchive a note."""
-        note = self._storage.get_note(note_id)
-        if note:
-            note.is_archived = archived
-            note.is_trashed = False
-            self._storage.save_note(note)
-            self.notes_changed.emit()
-            return note
-        return None
-
-    def move_to_trash(self, note_id: str) -> Note | None:
-        """Move a note to Trash without destroying it."""
-        note = self._storage.get_note(note_id)
-        if note:
-            note.is_trashed = True
-            note.is_pinned = False
-            self._storage.save_note(note)
-            self.notes_changed.emit()
-            return note
-        return None
-
-    def restore_note(self, note_id: str) -> Note | None:
-        """Restore a note from Trash to its previous folder."""
-        note = self._storage.get_note(note_id)
-        if note:
-            note.is_trashed = False
-            self._storage.save_note(note)
-            self.notes_changed.emit()
-            return note
-        return None
-
-    def move_to_folder(self, note_id: str, folder: str) -> Note | None:
-        """Move a note to a different folder."""
-        note = self._storage.get_note(note_id)
-        if note:
-            note.folder = folder
-            self._storage.save_note(note)
-            self.notes_changed.emit()
-            return note
-        return None
-
-    def add_attachment(self, note_id: str, source: Path) -> Path | None:
-        """Copy an attachment into managed storage and associate it with a note."""
-        note = self._storage.get_note(note_id)
-        if not note:
-            return None
-        destination = self._storage.add_attachment(note_id, source)
-        relative_path = destination.relative_to(self._storage.base_dir).as_posix()
-        note.attachments.append(relative_path)
-        self._storage.save_note(note)
-        self.notes_changed.emit()
-        return destination

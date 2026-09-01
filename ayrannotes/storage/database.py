@@ -8,8 +8,6 @@ Directory layout:
         settings.json
         notes/
             <note_id>.md
-        legacy-json-backup/
-            <note_id>.json
 """
 
 from __future__ import annotations
@@ -19,7 +17,6 @@ import hashlib
 import json
 import os
 import re
-import shutil
 import tempfile
 import uuid
 from pathlib import Path
@@ -102,8 +99,6 @@ class StorageEngine:
         self.base_dir = base_dir or _data_dir()
         self.default_notes_dir = self.base_dir / "notes"
         self.settings_file = self.base_dir / "settings.json"
-        self.attachments_dir = self.base_dir / "attachments"
-        self.migration_backup_dir = self.base_dir / "legacy-json-backup"
         self.base_dir.mkdir(parents=True, exist_ok=True)
         bootstrap_settings = self.load_settings()
         configured = (
@@ -118,7 +113,6 @@ class StorageEngine:
         )
         self.notes_dir = self._resolve_notes_directory(configured)
         self._ensure_dirs()
-        self._migrate_legacy_json_notes()
         git_manager.init_repo(self.notes_dir)
 
     # ------------------------------------------------------------------
@@ -139,7 +133,6 @@ class StorageEngine:
                 self.notes_dir,
                 self._notes_directory_identity,
             )
-        self.attachments_dir.mkdir(parents=True, exist_ok=True)
 
     def _resolve_notes_directory(self, value: object) -> Path:
         if value is None or not str(value).strip():
@@ -173,7 +166,6 @@ class StorageEngine:
         self.notes_dir = destination
         self._notes_directory_identity = expected_identity
         try:
-            self._migrate_legacy_json_notes()
             git_manager.init_repo(destination)
         except BaseException:
             self.notes_dir = previous_directory
@@ -268,82 +260,6 @@ class StorageEngine:
             raise ValueError("Invalid note ID")
         return self.notes_dir / f"{note_id}.md"
 
-    def _migrate_legacy_json_notes(self) -> int:
-        """Convert legacy JSON notes once, retaining exact originals as backup."""
-        converted = 0
-        source_directories = {self.default_notes_dir, self.notes_dir}
-        for source_directory in source_directories:
-            if not source_directory.is_dir():
-                continue
-            backup_directory = self._migration_backup_directory(
-                source_directory
-            )
-            for source in sorted(source_directory.glob("*.json")):
-                if (
-                    not _NOTE_ID.fullmatch(source.stem)
-                    or not source.is_file()
-                    or source.is_symlink()
-                ):
-                    continue
-                if self._migrate_legacy_note(source, backup_directory):
-                    converted += 1
-        return converted
-
-    def _migration_backup_directory(self, source_directory: Path) -> Path:
-        if source_directory.resolve() == self.default_notes_dir.resolve():
-            namespace = "default"
-        else:
-            namespace = hashlib.sha256(
-                str(source_directory.resolve()).encode("utf-8")
-            ).hexdigest()[:12]
-        return self.migration_backup_dir / namespace
-
-    def _migrate_legacy_note(
-        self,
-        source: Path,
-        backup_directory: Path,
-    ) -> bool:
-        source_bytes = source.read_bytes()
-        backup_directory.mkdir(parents=True, exist_ok=True)
-        backup = backup_directory / source.name
-        if backup.exists():
-            if backup.read_bytes() != source_bytes:
-                return False
-        else:
-            _atomic_write_bytes(backup, source_bytes)
-            if backup.read_bytes() != source_bytes:
-                return False
-
-        try:
-            data = json.loads(source_bytes.decode("utf-8"))
-            if not isinstance(data, dict):
-                return False
-            data["id"] = source.stem
-            note = Note.from_dict(data)
-        except (json.JSONDecodeError, UnicodeError, TypeError, ValueError):
-            return False
-
-        destination = source.with_suffix(".md")
-        if destination.exists():
-            try:
-                existing = self._read_note_path(destination)
-            except (OSError, TypeError, ValueError):
-                return False
-            if existing.to_dict() != note.to_dict():
-                return False
-        else:
-            serialized = serialize_note(note).encode("utf-8")
-            _atomic_write_bytes(destination, serialized)
-            try:
-                migrated = self._read_note_path(destination)
-            except (OSError, TypeError, ValueError):
-                return False
-            if migrated.to_dict() != note.to_dict():
-                return False
-
-        source.unlink()
-        return True
-
     @staticmethod
     def _revision(content: bytes) -> str:
         return hashlib.sha256(content).hexdigest()
@@ -355,7 +271,7 @@ class StorageEngine:
         return note
 
     def list_notes(self) -> list[Note]:
-        """Return all saved notes, sorted: pinned first, then by updated_at descending."""
+        """Return all saved Markdown notes, newest first."""
         self._validate_active_notes_directory()
         notes: list[Note] = []
         for fp in self.notes_dir.glob("*.md"):
@@ -369,17 +285,7 @@ class StorageEngine:
                 notes.append(self._read_note_path(fp))
             except (OSError, TypeError, ValueError):
                 continue
-        pinned = sorted(
-            [n for n in notes if n.is_pinned],
-            key=lambda n: n.updated_at,
-            reverse=True,
-        )
-        unpinned = sorted(
-            [n for n in notes if not n.is_pinned],
-            key=lambda n: n.updated_at,
-            reverse=True,
-        )
-        return pinned + unpinned
+        return sorted(notes, key=lambda n: n.updated_at, reverse=True)
 
     def get_note(self, note_id: str) -> Note | None:
         """Load a single note by its ID."""
@@ -443,30 +349,6 @@ class StorageEngine:
             except BaseException:
                 pass
             path.unlink()
-            shutil.rmtree(self.attachments_dir / note_id, ignore_errors=True)
             git_manager.schedule_commit(self.notes_dir, f"Delete: {title}")
             return True
         return False
-
-    def add_attachment(self, note_id: str, source: Path) -> Path:
-        """Copy a file into this note's managed attachment directory."""
-        self._note_path(note_id)  # validates the ID
-        self._validate_active_notes_directory()
-        source = Path(source)
-        if not source.is_file():
-            raise FileNotFoundError(source)
-        note_attachments = self.attachments_dir / note_id
-        note_attachments.mkdir(parents=True, exist_ok=True)
-        safe_name = Path(source.name).name
-        destination = note_attachments / safe_name
-        if destination.exists():
-            destination = note_attachments / f"{uuid.uuid4().hex[:8]}-{safe_name}"
-        shutil.copy2(source, destination)
-        return destination
-
-    def get_folders(self) -> list[str]:
-        """Return a sorted list of unique folder names across all notes."""
-        folders = {note.folder for note in self.list_notes()}
-        if "General" not in folders:
-            folders.add("General")
-        return sorted(folders)

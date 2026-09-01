@@ -24,15 +24,6 @@ class Note:
     id: str = field(default_factory=_new_id)
     title: str = "Untitled"
     content: str = ""
-    folder: str = "General"
-    is_markdown: bool = True
-    is_pinned: bool = False
-    is_favorite: bool = False
-    is_archived: bool = False
-    is_trashed: bool = False
-    is_simple_draft: bool = False
-    tags: list[str] = field(default_factory=list)
-    attachments: list[str] = field(default_factory=list)
     created_at: str = field(default_factory=_utcnow)
     updated_at: str = field(default_factory=_utcnow)
     _storage_revision: str = field(default="", repr=False, compare=False)
@@ -47,15 +38,6 @@ class Note:
             "id": self.id,
             "title": self.title,
             "content": self.content,
-            "folder": self.folder,
-            "is_markdown": self.is_markdown,
-            "is_pinned": self.is_pinned,
-            "is_favorite": self.is_favorite,
-            "is_archived": self.is_archived,
-            "is_trashed": self.is_trashed,
-            "is_simple_draft": self.is_simple_draft,
-            "tags": self.tags,
-            "attachments": self.attachments,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
         }
@@ -63,31 +45,10 @@ class Note:
     @classmethod
     def from_dict(cls, data: dict) -> Note:
         """Deserialize from a dictionary."""
-        raw_tags = data.get("tags", [])
-        tags = []
-        if isinstance(raw_tags, list):
-            tags = list(dict.fromkeys(
-                tag.strip() for tag in raw_tags
-                if isinstance(tag, str) and tag.strip()
-            ))
-        raw_attachments = data.get("attachments", [])
-        attachments = [
-            item for item in raw_attachments
-            if isinstance(item, str) and item.strip()
-        ] if isinstance(raw_attachments, list) else []
         return cls(
             id=data.get("id", _new_id()),
             title=data.get("title", "Untitled"),
             content=data.get("content", ""),
-            folder=data.get("folder", "General"),
-            is_markdown=data.get("is_markdown", True),
-            is_pinned=data.get("is_pinned", False),
-            is_favorite=data.get("is_favorite", False),
-            is_archived=data.get("is_archived", False),
-            is_trashed=data.get("is_trashed", False),
-            is_simple_draft=data.get("is_simple_draft", False),
-            tags=tags,
-            attachments=attachments,
             created_at=data.get("created_at", _utcnow()),
             updated_at=data.get("updated_at", _utcnow()),
         )
@@ -108,10 +69,6 @@ class AppSettings:
     window_height: int = 680
     window_x: int = 100
     window_y: int = 100
-    sidebar_folder_height: int = 170
-    toolbar_actions: list[str] = field(
-        default_factory=lambda: ["bold", "italic", "checklist"]
-    )
     view_mode: str = "simple"
     notes_directory: str = ""
     notes_directory_id: str = ""
@@ -132,8 +89,6 @@ class AppSettings:
             "window_height": self.window_height,
             "window_x": self.window_x,
             "window_y": self.window_y,
-            "sidebar_folder_height": self.sidebar_folder_height,
-            "toolbar_actions": self.toolbar_actions,
             "view_mode": self.view_mode,
             "notes_directory": self.notes_directory,
             "notes_directory_id": self.notes_directory_id,
@@ -148,8 +103,6 @@ class AppSettings:
         for key in s.to_dict():
             if key in data:
                 setattr(s, key, data[key])
-        if not isinstance(s.toolbar_actions, list):
-            s.toolbar_actions = ["bold", "italic", "checklist"]
         if s.view_mode not in {"simple", "detailed"}:
             s.view_mode = "simple"
         if not isinstance(s.notes_directory, str):

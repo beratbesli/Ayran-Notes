@@ -29,7 +29,6 @@ dependencies = [
 
 [project.scripts]
 ayrannotes = "ayrannotes.main:main"
-ayrannotes-cli = "ayrannotes.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]

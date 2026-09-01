@@ -120,11 +120,6 @@ class SettingsController(QObject):
         self._settings.preview_visible = visible
         self._apply()
 
-    def set_toolbar_actions(self, actions: list[str]) -> None:
-        """Persist the ordered set of tools shown above the editor."""
-        self._settings.toolbar_actions = list(dict.fromkeys(actions))
-        self._apply()
-
     def set_view_mode(self, mode: str) -> None:
         """Switch between the simple cards view and the detailed workspace."""
         if mode not in {"simple", "detailed"}:
@@ -164,11 +159,6 @@ class SettingsController(QObject):
         self._settings.window_y = y
         self._settings.window_width = w
         self._settings.window_height = h
-        self._storage.save_settings(self._settings)
-
-    def save_sidebar_folder_height(self, height: int) -> None:
-        """Silently persist the user-selected sidebar section height."""
-        self._settings.sidebar_folder_height = max(80, height)
         self._storage.save_settings(self._settings)
 
     def save_main_splitter_sizes(self, sizes: list[int]) -> None:

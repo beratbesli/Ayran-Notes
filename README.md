@@ -41,11 +41,7 @@ For Fedora, Arch Linux, Manjaro, or if you prefer a portable app without install
 | **Markdown Editor** | Pygments-highlighted fenced code in the editor and matching live preview |
 | **Git Versioning** | Automatic, invisible Git versioning (Time Machine) for all your notes |
 | **Zen Mode** | Distraction-free full-screen writing environment (`F11` or `Ctrl+Shift+Z`) |
-| **Command Palette** | Sublime/VSCode style command palette (`Ctrl+P`) for lightning-fast navigation |
 | **Floating Toolbar** | Medium-style floating context menu for quick text formatting |
-| **CLI Support** | Command-line interface (`ayrannotes-cli`) to create, search, and manage notes from the terminal |
-| **Folder Organization** | Organize notes into custom folders |
-| **Pin Notes** | Pin important notes to the top of the list |
 | **Full-Text Search** | Instantly search across all note titles and content |
 | **Refined Themes** | Calm, Apple-inspired light and dark interfaces |
 | **Accessible Accent Colors** | Pick any accent; foreground contrast adjusts automatically |
@@ -55,11 +51,9 @@ For Fedora, Arch Linux, Manjaro, or if you prefer a portable app without install
 | **Plain Markdown Storage** | Notes are readable `.md` files with YAML front matter |
 | **Safe JSON Migration** | Legacy JSON notes are converted once with exact backups |
 | **Configurable Notes Folder**| Keep notes in XDG storage or any existing shared folder |
-| **Organization** | Tags, favorites, archive, trash, and safe restore |
 | **Editor Tools** | Undo/redo, find/replace, Markdown toolbar, and task lists |
-| **Attachments** | Copy files and images into managed per-note storage |
-| **Export** | Save the current note as Markdown, TXT, HTML, or PDF |
-| **Import** | Import multiple Markdown, TXT, HTML, or Ayran Notes JSON files |
+| **Export** | Save the current note as Markdown |
+| **Import** | Import multiple Markdown files |
 | **Simple Mode** | Searchable summary cards, empty-state guidance, and focused writing |
 | **XDG Compliant Storage** | Data stored in `~/.local/share/ayrannotes/` |
 
@@ -93,10 +87,9 @@ All data is stored locally following XDG standards:
 ├── notes/
 │   ├── <note_id>.md         # Markdown + YAML front matter
 │   └── ...
-└── attachments/             # Managed files grouped by note ID
 ```
 
-Each `.md` file is the source of truth and can be read or edited in any text editor. Its YAML block stores the title, tags, timestamps, pin and folder state, while the Markdown body contains the note itself. 
+Each `.md` file is the source of truth and can be read or edited in any text editor. Its YAML block stores the title and timestamps, while the Markdown body contains the note itself.
 
 ---
 
