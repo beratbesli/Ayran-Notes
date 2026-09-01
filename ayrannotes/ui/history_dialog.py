@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import difflib
 import html
+from datetime import datetime
 
 from PyQt6.QtCore import QThread, Qt, pyqtSignal
 from PyQt6.QtWidgets import (
@@ -258,9 +259,11 @@ class HistoryDialog(QDialog):
 
     def _history_item_text(self, record: dict, current: bool = False) -> str:
         marker = f" · {self._i18n.t('current_version')}" if current else ""
-        date = str(record.get("date", ""))
-        if " " in date:
-            date = date.split(" ", 1)[0]
+        raw_date = str(record.get("date", ""))
+        try:
+            date = datetime.fromisoformat(raw_date).astimezone().strftime("%d.%m.%Y %H:%M")
+        except (TypeError, ValueError):
+            date = raw_date
         message = str(record.get("message", ""))
         return f"{date}{marker}\n{message}"
 

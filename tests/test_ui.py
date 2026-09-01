@@ -219,6 +219,22 @@ class MainWindowTests(unittest.TestCase):
             self.assertIn(expected_color, dialog._build_diff("old", "new"))
             dialog.close()
 
+    def test_history_items_show_date_and_time(self) -> None:
+        note = self.notes.create_note("Timestamp history")
+        dialog = HistoryDialog(
+            self.notes,
+            note,
+            self.window._i18n,
+            self.window._settings_ctrl,
+            self.window,
+        )
+        text = dialog._history_item_text(
+            {"date": "2024-01-02 13:45:00 +0000", "message": "Update: note"}
+        )
+        self.assertRegex(text, r"02\.01\.2024 \d{2}:45")
+        self.assertIn("Update: note", text)
+        dialog.close()
+
 
 if __name__ == "__main__":
     unittest.main()
