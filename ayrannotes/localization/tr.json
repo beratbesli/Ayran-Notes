@@ -54,7 +54,7 @@
   "code_block": "Kod bloğu",
   "link": "Bağlantı",
   "about": "Hakkında",
-  "about_text": "Ayran Notes v1.3.0\nLinux için hafif ve özelleştirilebilir bir not alma uygulaması.",
+  "about_text": "Linux için basit ve pratik bir Markdown yazma uygulaması.",
   "export": "Dışa Aktar",
   "import": "İçe Aktar",
   "import_success": "{count} not içe aktarıldı",

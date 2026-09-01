@@ -54,7 +54,7 @@
   "code_block": "Code block",
   "link": "Link",
   "about": "About",
-  "about_text": "Ayran Notes v1.3.0\nA lightweight, customizable note-taking app for Linux.",
+  "about_text": "A simple, practical Markdown writing app for Linux.",
   "export": "Export",
   "import": "Import",
   "import_success": "{count} note(s) imported",

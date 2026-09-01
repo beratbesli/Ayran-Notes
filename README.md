@@ -1,7 +1,7 @@
 <p align="center">
   <h1 align="center">🥛 Ayran Notes</h1>
   <p align="center">
-    A lightweight, customizable, and modern note-taking application for Linux.
+    A simple, clean, and practical Markdown writing application for Linux.
     <br />
     Built with Python 3 & PyQt6.
   </p>
@@ -40,7 +40,6 @@ For Fedora, Arch Linux, Manjaro, or if you prefer a portable app without install
 |---|---|
 | **Markdown Editor** | Pygments-highlighted fenced code in the editor and matching live preview |
 | **Git Versioning** | Automatic, invisible Git versioning (Time Machine) for all your notes |
-| **Zen Mode** | Distraction-free full-screen writing environment (`F11` or `Ctrl+Shift+Z`) |
 | **Floating Toolbar** | Medium-style floating context menu for quick text formatting |
 | **Full-Text Search** | Instantly search across all note titles and content |
 | **Refined Themes** | Calm, Apple-inspired light and dark interfaces |
@@ -49,7 +48,6 @@ For Fedora, Arch Linux, Manjaro, or if you prefer a portable app without install
 | **Multi-Language (i18n)** | English and Turkish (Türkçe) with instant switching |
 | **Safe Auto-Save** | Visible save status, atomic writes, and close protection on failure |
 | **Plain Markdown Storage** | Notes are readable `.md` files with YAML front matter |
-| **Safe JSON Migration** | Legacy JSON notes are converted once with exact backups |
 | **Configurable Notes Folder**| Keep notes in XDG storage or any existing shared folder |
 | **Editor Tools** | Undo/redo, find/replace, Markdown toolbar, and task lists |
 | **Export** | Save the current note as Markdown |

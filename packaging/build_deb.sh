@@ -9,6 +9,8 @@ BUILD_DIR="${PACKAGING_DIR}/build"
 DEB_DIR="${BUILD_DIR}/ayrannotes_deb"
 DIST_DIR="${PROJECT_ROOT}/dist"
 
+APP_VERSION="$(cd "${PROJECT_ROOT}" && python3 -c 'from ayrannotes import __version__; print(__version__)')"
+
 # Check if PyInstaller build exists
 if [ ! -d "${BUILD_DIR}/pyinstaller_dist/ayrannotes" ]; then
     echo "❌ Error: PyInstaller build not found. Run AppImage build first."
@@ -34,9 +36,9 @@ ln -s /opt/ayrannotes/ayrannotes "${DEB_DIR}/usr/bin/ayrannotes"
 sed -i 's/^Exec=.*/Exec=\/opt\/ayrannotes\/ayrannotes/' "${DEB_DIR}/usr/share/applications/ayrannotes.desktop"
 
 echo "📝 Creating control file..."
-cat << 'CONTROL' > "${DEB_DIR}/DEBIAN/control"
+cat << CONTROL > "${DEB_DIR}/DEBIAN/control"
 Package: ayrannotes
-Version: 1.0.0
+Version: ${APP_VERSION}
 Section: utils
 Priority: optional
 Architecture: amd64
