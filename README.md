@@ -22,13 +22,13 @@ Ayran Notes is designed to be incredibly easy to install on Linux. You do not ne
 
 ### 1. Debian/Ubuntu Systems (.deb) - Recommended
 For Ubuntu, Debian, Linux Mint, Pop!_OS, and other Debian-based distributions:
-1. Download the `Ayran-Notes-amd64.deb` file from the Releases page.
+1. Download the versioned `Ayran-Notes-<version>-amd64.deb` file from the Releases page.
 2. Double-click the downloaded file to open it in your Software Center, and click **Install**.
 3. You can now launch Ayran Notes directly from your application menu!
 
 ### 2. Universal Linux (AppImage) - Portable
 For Fedora, Arch Linux, Manjaro, or if you prefer a portable app without installation:
-1. Download the `Ayran-Notes-x86_64.AppImage` file.
+1. Download the versioned `Ayran-Notes-<version>-x86_64.AppImage` file.
 2. Right-click the file -> Properties -> Permissions -> Check **"Allow executing file as program"**.
 3. Double-click the file to run Ayran Notes instantly!
 
@@ -111,6 +111,10 @@ python3 run.py
 Scripts are provided to generate standalone packages:
 - **AppImage:** `./packaging/build_appimage.sh`
 - **.deb Package:** `./packaging/build_deb.sh`
+
+The first release is `0.0.1`. GitHub Releases are built automatically when a
+matching version tag such as `v0.0.1` is pushed. The release includes both a
+versioned AppImage and Debian package.
 
 ---
 

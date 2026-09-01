@@ -11,6 +11,7 @@ PACKAGING_DIR="${PROJECT_ROOT}/packaging"
 BUILD_DIR="${PACKAGING_DIR}/build"
 APPDIR="${PACKAGING_DIR}/Ayran-Notes.AppDir"
 DIST_DIR="${PROJECT_ROOT}/dist"
+APP_VERSION="$(cd "${PROJECT_ROOT}" && python3 -c 'from ayrannotes import __version__; print(__version__)')"
 
 cd "$PROJECT_ROOT"
 
@@ -80,9 +81,9 @@ fi
 
 echo "🖼️ Generating AppImage..."
 export ARCH=x86_64
-./linuxdeploy-x86_64.AppImage --appdir "${APPDIR}" --output appimage
+APPIMAGE_EXTRACT_AND_RUN=1 ./linuxdeploy-x86_64.AppImage --appdir "${APPDIR}" --output appimage
 
 # Move to dist
-mv Ayran_Notes-*.AppImage "${DIST_DIR}/Ayran-Notes-x86_64.AppImage"
+mv Ayran_Notes-*.AppImage "${DIST_DIR}/Ayran-Notes-${APP_VERSION}-x86_64.AppImage"
 
-echo "✅ Build complete! AppImage is available at ${DIST_DIR}/Ayran-Notes-x86_64.AppImage"
+echo "✅ Build complete! AppImage is available at ${DIST_DIR}/Ayran-Notes-${APP_VERSION}-x86_64.AppImage"

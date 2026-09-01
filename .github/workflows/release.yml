@@ -1,0 +1,42 @@
+name: Build release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Verify tag version
+        run: |
+          app_version="$(python -c 'from ayrannotes import __version__; print(__version__)')"
+          tag_version="${GITHUB_REF_NAME#v}"
+          test "$tag_version" = "$app_version"
+
+      - name: Build AppImage
+        run: ./packaging/build_appimage.sh
+
+      - name: Build Debian package
+        run: ./packaging/build_deb.sh
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            dist/Ayran-Notes-*-x86_64.AppImage
+            dist/Ayran-Notes-*-amd64.deb
