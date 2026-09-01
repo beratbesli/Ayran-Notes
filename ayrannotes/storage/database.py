@@ -301,6 +301,49 @@ class StorageEngine:
                 return None
         return None
 
+    def get_note_history(self, note_id: str, limit: int = 20) -> list[dict]:
+        """Return only the local Git history belonging to one note."""
+        self._validate_active_notes_directory()
+        path = self._note_path(note_id)
+        return git_manager.get_history(self.notes_dir, path, limit=limit)
+
+    def get_note_version(self, note_id: str, commit_hash: str) -> Note | None:
+        """Read and parse a note exactly as it existed in a Git commit."""
+        self._validate_active_notes_directory()
+        path = self._note_path(note_id)
+        raw = git_manager.get_file_version(self.notes_dir, path, commit_hash)
+        if not raw:
+            return None
+        try:
+            return deserialize_note(raw, note_id)
+        except (TypeError, ValueError):
+            return None
+
+    def list_deleted_notes(self, limit: int = 20) -> list[dict]:
+        """Find deleted note files from local Git history only."""
+        self._validate_active_notes_directory()
+        deleted = git_manager.list_deleted_notes(self.notes_dir, limit=limit)
+        for entry in deleted:
+            note_id = entry.get("note_id", "")
+            commit_hash = entry.get("hash", "")
+            if not isinstance(note_id, str) or not isinstance(commit_hash, str):
+                continue
+            path = self._note_path(note_id)
+            raw = git_manager.get_file_version(
+                self.notes_dir,
+                path,
+                self._parent_commit(commit_hash),
+            )
+            try:
+                entry["title"] = deserialize_note(raw, note_id).title
+            except (TypeError, ValueError):
+                entry["title"] = note_id
+        return deleted
+
+    def _parent_commit(self, commit_hash: str) -> str:
+        """Return the first parent of a validated deletion commit."""
+        return git_manager.get_parent_commit(self.notes_dir, commit_hash)
+
     def save_note(self, note: Note) -> None:
         """Create or update a note on disk."""
         self._write_note(note, touch=True)
@@ -334,6 +377,99 @@ class StorageEngine:
             note.updated_at = previous_updated_at
             note._storage_revision = previous_revision
             raise
+
+    def restore_note_version(
+        self,
+        note_id: str,
+        commit_hash: str,
+        *,
+        expected_revision: str = "",
+    ) -> Note:
+        """Restore an existing note as a new version without rewriting history."""
+        self._validate_active_notes_directory()
+        path = self._note_path(note_id)
+        if path.is_symlink() or not path.is_file():
+            raise FileNotFoundError(f"Note does not exist: {note_id}")
+        previous_bytes = path.read_bytes()
+        if expected_revision and self._revision(previous_bytes) != expected_revision:
+            raise StorageConflictError(f"Note changed outside Ayran Notes: {note_id}")
+        raw = git_manager.get_file_version(self.notes_dir, path, commit_hash)
+        if not raw:
+            raise ValueError("Selected note version could not be read")
+        try:
+            restored = deserialize_note(raw, note_id)
+        except (TypeError, ValueError) as error:
+            raise ValueError("Selected note version is invalid") from error
+        return self._write_restored_note(
+            path,
+            restored,
+            previous_bytes=previous_bytes,
+            commit_message=f"Restore: {restored.title}",
+        )
+
+    def restore_deleted_note(
+        self,
+        note_id: str,
+        commit_hash: str,
+        *,
+        new_note_id: str | None = None,
+    ) -> Note:
+        """Restore a deleted note from its last existing Git version."""
+        self._validate_active_notes_directory()
+        source_path = self._note_path(note_id)
+        if source_path.exists() or source_path.is_symlink():
+            if new_note_id is None:
+                raise FileExistsError(f"A note with ID already exists: {note_id}")
+        parent = git_manager.get_parent_commit(self.notes_dir, commit_hash)
+        if not parent:
+            raise ValueError("Deleted note version has no readable parent")
+        raw = git_manager.get_file_version(self.notes_dir, source_path, parent)
+        if not raw:
+            raise ValueError("Deleted note version could not be read")
+        try:
+            restored = deserialize_note(raw, note_id)
+        except (TypeError, ValueError) as error:
+            raise ValueError("Deleted note version is invalid") from error
+        target_id = new_note_id or note_id
+        target_path = self._note_path(target_id)
+        if target_path.exists() or target_path.is_symlink():
+            raise FileExistsError(f"A note with ID already exists: {target_id}")
+        restored.id = target_id
+        return self._write_restored_note(
+            target_path,
+            restored,
+            previous_bytes=None,
+            commit_message=f"Restore deleted note: {restored.title}",
+        )
+
+    def _write_restored_note(
+        self,
+        path: Path,
+        note: Note,
+        *,
+        previous_bytes: bytes | None,
+        commit_message: str,
+    ) -> Note:
+        """Atomically write and commit a restored note, rolling back on failure."""
+        previous_updated_at = note.updated_at
+        note.touch()
+        serialized = serialize_note(note).encode("utf-8")
+        git_manager.cancel_scheduled_commit()
+        try:
+            _atomic_write_bytes(path, serialized)
+            if not git_manager.commit_change(self.notes_dir, commit_message):
+                raise OSError("Restored note could not be committed")
+        except BaseException:
+            try:
+                if previous_bytes is None:
+                    path.unlink(missing_ok=True)
+                else:
+                    _atomic_write_bytes(path, previous_bytes)
+            finally:
+                note.updated_at = previous_updated_at
+            raise
+        note._storage_revision = self._revision(serialized)
+        return note
 
     def delete_note(self, note_id: str) -> bool:
         """Delete a note file. Returns True if found and deleted."""

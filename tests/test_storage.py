@@ -10,6 +10,7 @@ from ayrannotes.controllers.settings_controller import SettingsController
 from ayrannotes.storage.database import StorageConflictError, StorageEngine
 from ayrannotes.storage.markdown_notes import serialize_note
 from ayrannotes.storage.models import AppSettings, Note
+import ayrannotes.storage.git_versioning as gv
 
 
 class StorageEngineTests(unittest.TestCase):
@@ -20,6 +21,10 @@ class StorageEngineTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.temporary.cleanup()
+
+    def _immediate_commit(self, notes_dir, message, delay=5.0):
+        gv.git_manager.cancel_scheduled_commit()
+        return gv.git_manager.commit_change(notes_dir, message)
 
     def test_note_round_trips_as_clean_markdown(self) -> None:
         note = Note(title="Release: Türkiye", content="Body\n\n---\n\n`code`")
@@ -174,6 +179,77 @@ class StorageEngineTests(unittest.TestCase):
         self.assertEqual(settings.language, "en")
         self.assertEqual(settings.window_width, 1000)
         self.assertEqual(settings.main_splitter_sizes, [])
+
+
+    def test_restore_existing_version_creates_new_commit_and_keeps_old_history(self) -> None:
+        with patch.object(gv.git_manager, "schedule_commit", side_effect=self._immediate_commit):
+            note = Note(title="History", content="first")
+            self.storage.save_note(note)
+            note.content = "second"
+            self.storage.save_note(note)
+
+            history_before = self.storage.get_note_history(note.id)
+            restored = self.storage.restore_note_version(
+                note.id,
+                history_before[-1]["hash"],
+                expected_revision=note._storage_revision,
+            )
+
+        self.assertEqual(restored.content, "first")
+        self.assertEqual(self.storage.get_note(note.id).content, "first")
+        history_after = self.storage.get_note_history(note.id)
+        self.assertEqual(len(history_after), 3)
+        self.assertEqual(history_after[0]["message"], "Restore: History")
+        self.assertIn(history_before[-1]["hash"], [entry["hash"] for entry in history_after])
+
+    def test_restore_rejects_external_change_and_invalid_version(self) -> None:
+        with patch.object(gv.git_manager, "schedule_commit", side_effect=self._immediate_commit):
+            note = Note(title="Safe", content="original")
+            self.storage.save_note(note)
+            history = self.storage.get_note_history(note.id)
+            path = self.storage.notes_dir / f"{note.id}.md"
+            path.write_text("external", encoding="utf-8")
+            with self.assertRaises(StorageConflictError):
+                self.storage.restore_note_version(
+                    note.id,
+                    history[0]["hash"],
+                    expected_revision=note._storage_revision,
+                )
+            with self.assertRaises(ValueError):
+                self.storage.restore_note_version(note.id, "invalid-hash")
+
+    def test_deleted_note_can_be_found_and_restored_without_overwriting_id(self) -> None:
+        with patch.object(gv.git_manager, "schedule_commit", side_effect=self._immediate_commit):
+            note = Note(title="Deleted note", content="recover me")
+            self.storage.save_note(note)
+            self.storage.delete_note(note.id)
+            deleted = self.storage.list_deleted_notes()
+            restored = self.storage.restore_deleted_note(note.id, deleted[0]["hash"])
+
+        self.assertEqual(restored.id, note.id)
+        self.assertEqual(restored.title, "Deleted note")
+        self.assertEqual(self.storage.get_note(note.id).content, "recover me")
+        self.assertEqual(self.storage.get_note_history(note.id)[0]["message"], "Restore deleted note: Deleted note")
+
+    def test_deleted_note_id_collision_requires_new_id_and_can_restore_with_one(self) -> None:
+        with patch.object(gv.git_manager, "schedule_commit", side_effect=self._immediate_commit):
+            note = Note(title="Deleted", content="old")
+            self.storage.save_note(note)
+            self.storage.delete_note(note.id)
+            deleted = self.storage.list_deleted_notes()
+            replacement = Note(id=note.id, title="Replacement", content="new")
+            self.storage.save_note(replacement)
+            with self.assertRaises(FileExistsError):
+                self.storage.restore_deleted_note(note.id, deleted[0]["hash"])
+            restored = self.storage.restore_deleted_note(
+                note.id,
+                deleted[0]["hash"],
+                new_note_id="ffffffffffff",
+            )
+
+        self.assertEqual(restored.id, "ffffffffffff")
+        self.assertEqual(self.storage.get_note(note.id).title, "Replacement")
+        self.assertEqual(self.storage.get_note(restored.id).content, "old")
 
 
 if __name__ == "__main__":

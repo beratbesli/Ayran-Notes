@@ -111,6 +111,55 @@ class GitVersioningTests(unittest.TestCase):
             history = gv.git_manager.get_history(engine.notes_dir)
             self.assertEqual(len(history), 2)
 
+    def test_note_history_is_scoped_and_marks_deleted_versions(self) -> None:
+        git_manager = GitVersioning()
+        notes_dir = self.tmp_path / "notes"
+        notes_dir.mkdir()
+        git_manager.init_repo(notes_dir)
+        first = notes_dir / "aaaaaaaaaaaa.md"
+        second = notes_dir / "bbbbbbbbbbbb.md"
+        first.write_text("first", encoding="utf-8")
+        second.write_text("second", encoding="utf-8")
+        self.assertTrue(git_manager.commit_change(notes_dir, "Create: both"))
+        first.write_text("first updated", encoding="utf-8")
+        self.assertTrue(git_manager.commit_change(notes_dir, "Update: first"))
+        second.unlink()
+        self.assertTrue(git_manager.commit_change(notes_dir, "Delete: second"))
+
+        first_history = git_manager.get_history(notes_dir, first)
+        second_history = git_manager.get_history(notes_dir, second)
+        self.assertEqual([entry["message"] for entry in first_history], ["Update: first", "Create: both"])
+        self.assertEqual([entry["message"] for entry in second_history], ["Delete: second", "Create: both"])
+        self.assertTrue(first_history[0]["exists"])
+        self.assertFalse(second_history[0]["exists"])
+        self.assertEqual(git_manager.get_history(notes_dir, self.tmp_path / "outside.md"), [])
+        self.assertEqual(git_manager.get_file_version(notes_dir, first, "not-a-hash"), "")
+
+    def test_deleted_note_listing_includes_deleted_note_paths(self) -> None:
+        git_manager = GitVersioning()
+        notes_dir = self.tmp_path / "notes"
+        notes_dir.mkdir()
+        git_manager.init_repo(notes_dir)
+        note = notes_dir / "cccccccccccc.md"
+        note.write_text("old", encoding="utf-8")
+        self.assertTrue(git_manager.commit_change(notes_dir, "Create: deleted"))
+        note.unlink()
+        self.assertTrue(git_manager.commit_change(notes_dir, "Delete: deleted"))
+
+        deleted = git_manager.list_deleted_notes(notes_dir)
+        self.assertEqual(len(deleted), 1)
+        self.assertEqual(deleted[0]["note_id"], "cccccccccccc")
+        self.assertEqual(deleted[0]["path"], "cccccccccccc.md")
+        self.assertEqual(deleted[0]["message"], "Delete: deleted")
+
+    def test_git_operations_fail_soft_when_git_is_unavailable(self) -> None:
+        git_manager = GitVersioning()
+        notes_dir = self.tmp_path / "notes"
+        notes_dir.mkdir()
+        with patch("ayrannotes.storage.git_versioning.subprocess.run", side_effect=FileNotFoundError):
+            self.assertFalse(git_manager.init_repo(notes_dir))
+            self.assertEqual(git_manager.get_history(notes_dir), [])
+
 
 if __name__ == "__main__":
     unittest.main()
