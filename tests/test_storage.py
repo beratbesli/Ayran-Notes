@@ -9,7 +9,7 @@ from unittest.mock import patch
 from ayrannotes.controllers.settings_controller import SettingsController
 from ayrannotes.storage.database import StorageConflictError, StorageEngine
 from ayrannotes.storage.markdown_notes import serialize_note
-from ayrannotes.storage.models import Note
+from ayrannotes.storage.models import AppSettings, Note
 
 
 class StorageEngineTests(unittest.TestCase):
@@ -140,6 +140,40 @@ class StorageEngineTests(unittest.TestCase):
         self.storage.settings_file.write_text("[]", encoding="utf-8")
         with self.assertRaisesRegex(ValueError, "root must be an object"):
             StorageEngine(self.base_dir)
+
+    def test_malformed_note_fields_fall_back_to_safe_values(self) -> None:
+        loaded = Note.from_dict(
+            {
+                "id": "../../outside",
+                "title": 42,
+                "content": None,
+                "created_at": 12,
+                "updated_at": "",
+            }
+        )
+        self.assertRegex(loaded.id, r"^[0-9a-f]{12}$")
+        self.assertEqual(loaded.title, "Untitled")
+        self.assertEqual(loaded.content, "")
+        self.assertTrue(loaded.created_at)
+        self.assertTrue(loaded.updated_at)
+
+    def test_malformed_preferences_use_safe_defaults(self) -> None:
+        settings = AppSettings.from_dict(
+            {
+                "theme": "neon",
+                "accent_color": "not-a-color",
+                "font_size": "huge",
+                "language": "xx",
+                "window_width": -1,
+                "main_splitter_sizes": [100, "bad"],
+            }
+        )
+        self.assertEqual(settings.theme, "system")
+        self.assertEqual(settings.accent_color, "")
+        self.assertEqual(settings.font_size, 14)
+        self.assertEqual(settings.language, "en")
+        self.assertEqual(settings.window_width, 1000)
+        self.assertEqual(settings.main_splitter_sizes, [])
 
 
 if __name__ == "__main__":

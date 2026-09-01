@@ -3,7 +3,7 @@
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import PropertyMock, patch
 
 from PyQt6.QtWidgets import QApplication, QMessageBox
 
@@ -116,6 +116,27 @@ class MainWindowTests(unittest.TestCase):
             ):
                 self.window._export_current_note()
             self.assertTrue((Path(tmp) / "exported.md").is_file())
+
+    def test_preview_uses_resolved_system_theme(self) -> None:
+        note = self.notes.create_note("Preview")
+        self.window._change_view_mode("detailed")
+        self.window._load_note(note.id)
+        self.window._preview.show()
+        with patch.object(
+            type(self.window._settings_ctrl),
+            "resolved_theme",
+            new_callable=PropertyMock,
+            return_value="light",
+        ), patch(
+            "ayrannotes.ui.main_window.render_markdown_html",
+            return_value="<p>preview</p>",
+        ) as render, patch.object(
+            self.window._preview,
+            "isVisible",
+            return_value=True,
+        ):
+            self.window._update_preview(reset_scroll=True)
+        self.assertEqual(render.call_args.kwargs["theme"], "light")
 
 
 if __name__ == "__main__":
