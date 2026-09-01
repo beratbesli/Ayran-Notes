@@ -39,7 +39,7 @@ For Fedora, Arch Linux, Manjaro, or if you prefer a portable app without install
 | Feature | Description |
 |---|---|
 | **Markdown Editor** | Pygments-highlighted fenced code in the editor and matching live preview |
-| **Git Versioning** | Automatic, invisible Git versioning (Time Machine) for all your notes |
+| **Local Git History** | Automatic local version history for Markdown notes, with previews and safe restore |
 | **Floating Toolbar** | Medium-style floating context menu for quick text formatting |
 | **Full-Text Search** | Instantly search across all note titles and content |
 | **Refined Themes** | Calm, Apple-inspired light and dark interfaces |
@@ -84,10 +84,15 @@ All data is stored locally following XDG standards:
 ├── settings.json            # Application preferences
 ├── notes/
 │   ├── <note_id>.md         # Markdown + YAML front matter
+│   ├── .git/                 # Local note history (created automatically)
 │   └── ...
 ```
 
 Each `.md` file is the source of truth and can be read or edited in any text editor. Its YAML block stores the title and timestamps, while the Markdown body contains the note itself.
+
+The active notes folder also contains the local Git history used to protect note changes. From the **File** menu, you can view a note's previous versions, preview Markdown, inspect changes, and restore an older version. Restoring creates a new version, so existing history is preserved. Deleted notes can be recovered from the same local history when their Markdown file is no longer present.
+
+This history stays on the computer in the active notes folder. Ayran Notes does not automatically send it to GitHub or any other remote service.
 
 ---
 

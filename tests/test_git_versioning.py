@@ -160,6 +160,16 @@ class GitVersioningTests(unittest.TestCase):
             self.assertFalse(git_manager.init_repo(notes_dir))
             self.assertEqual(git_manager.get_history(notes_dir), [])
 
+    def test_history_is_empty_when_repository_does_not_exist(self) -> None:
+        git_manager = GitVersioning()
+        notes_dir = self.tmp_path / "notes"
+        notes_dir.mkdir()
+        note = notes_dir / "aaaaaaaaaaaa.md"
+        note.write_text("note", encoding="utf-8")
+        self.assertEqual(git_manager.get_history(notes_dir, note), [])
+        self.assertEqual(git_manager.list_deleted_notes(notes_dir), [])
+        self.assertEqual(git_manager.get_file_version(notes_dir, note, "a" * 40), "")
+
 
 if __name__ == "__main__":
     unittest.main()

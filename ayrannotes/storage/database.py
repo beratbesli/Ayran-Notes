@@ -332,12 +332,15 @@ class StorageEngine:
         """Find deleted note files from local Git history only."""
         self._validate_active_notes_directory()
         deleted = git_manager.list_deleted_notes(self.notes_dir, limit=limit)
+        available: list[dict] = []
         for entry in deleted:
             note_id = entry.get("note_id", "")
             commit_hash = entry.get("hash", "")
             if not isinstance(note_id, str) or not isinstance(commit_hash, str):
                 continue
             path = self._note_path(note_id)
+            if path.exists() or path.is_symlink():
+                continue
             raw = git_manager.get_file_version(
                 self.notes_dir,
                 path,
@@ -347,7 +350,8 @@ class StorageEngine:
                 entry["title"] = deserialize_note(raw, note_id).title
             except (TypeError, ValueError):
                 entry["title"] = note_id
-        return deleted
+            available.append(entry)
+        return available[:limit]
 
     def _parent_commit(self, commit_hash: str) -> str:
         """Return the first parent of a validated deletion commit."""

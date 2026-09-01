@@ -218,6 +218,25 @@ class StorageEngineTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 self.storage.restore_note_version(note.id, "invalid-hash")
 
+    def test_restore_does_not_touch_history_when_current_file_was_deleted_externally(self) -> None:
+        with patch.object(gv.git_manager, "schedule_commit", side_effect=self._immediate_commit):
+            note = Note(title="External delete", content="keep history")
+            self.storage.save_note(note)
+            history = self.storage.get_note_history(note.id)
+            path = self.storage.notes_dir / f"{note.id}.md"
+            path.unlink()
+            with self.assertRaises(FileNotFoundError):
+                self.storage.restore_note_version(note.id, history[0]["hash"])
+            self.assertEqual(len(self.storage.get_note_history(note.id)), 1)
+
+    def test_invalid_historical_markdown_is_reported_as_unavailable(self) -> None:
+        note = Note(id="dddddddddddd", title="Broken", content="valid")
+        path = self.storage.notes_dir / f"{note.id}.md"
+        path.write_text("---\ntitle: [broken\n---\nbody", encoding="utf-8")
+        self.assertTrue(gv.git_manager.commit_change(self.storage.notes_dir, "Create: broken"))
+        history = self.storage.get_note_history(note.id)
+        self.assertIsNone(self.storage.get_note_version(note.id, history[0]["hash"]))
+
     def test_deleted_note_can_be_found_and_restored_without_overwriting_id(self) -> None:
         with patch.object(gv.git_manager, "schedule_commit", side_effect=self._immediate_commit):
             note = Note(title="Deleted note", content="recover me")
@@ -230,6 +249,7 @@ class StorageEngineTests(unittest.TestCase):
         self.assertEqual(restored.title, "Deleted note")
         self.assertEqual(self.storage.get_note(note.id).content, "recover me")
         self.assertEqual(self.storage.get_note_history(note.id)[0]["message"], "Restore deleted note: Deleted note")
+        self.assertEqual(self.storage.list_deleted_notes(), [])
 
     def test_deleted_note_id_collision_requires_new_id_and_can_restore_with_one(self) -> None:
         with patch.object(gv.git_manager, "schedule_commit", side_effect=self._immediate_commit):

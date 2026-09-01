@@ -156,11 +156,15 @@ class GitVersioning:
             result = subprocess.run(
                 cmd,
                 cwd=notes_dir,
-                check=True,
+                check=False,
                 capture_output=True,
                 text=True,
                 timeout=15,
             )
+            if result.returncode != 0:
+                if result.returncode == 128 and not result.stdout.strip():
+                    return []
+                raise subprocess.CalledProcessError(result.returncode, cmd, result.stdout, result.stderr)
             
             history = []
             for line in result.stdout.strip().split("\n"):
@@ -232,11 +236,15 @@ class GitVersioning:
                     "*.md",
                 ],
                 cwd=notes_dir,
-                check=True,
+                check=False,
                 capture_output=True,
                 text=True,
                 timeout=15,
             )
+            if result.returncode != 0:
+                if result.returncode == 128 and not result.stdout.strip():
+                    return []
+                raise subprocess.CalledProcessError(result.returncode, result.args, result.stdout, result.stderr)
         except (subprocess.SubprocessError, FileNotFoundError, OSError) as e:
             logger.error(f"Failed to list deleted notes: {e}")
             return []

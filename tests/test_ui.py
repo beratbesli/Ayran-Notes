@@ -205,6 +205,20 @@ class MainWindowTests(unittest.TestCase):
         self.window._i18n.set_language("tr")
         self.assertIn("Geçmiş", self.window._act_history.text())
 
+    def test_history_diff_colors_follow_light_and_dark_themes(self) -> None:
+        note = self.notes.create_note("Theme history")
+        for theme, expected_color in (("light", "#273142"), ("dark", "#d8dee9")):
+            self.window._settings_ctrl.settings.theme = theme
+            dialog = HistoryDialog(
+                self.notes,
+                note,
+                self.window._i18n,
+                self.window._settings_ctrl,
+                self.window,
+            )
+            self.assertIn(expected_color, dialog._build_diff("old", "new"))
+            dialog.close()
+
 
 if __name__ == "__main__":
     unittest.main()
