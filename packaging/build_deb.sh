@@ -1,5 +1,5 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
 echo "🥛 Building Ayran Notes .deb package..."
 
@@ -49,6 +49,6 @@ CONTROL
 
 echo "🔨 Building .deb package..."
 mkdir -p "${DIST_DIR}"
-dpkg-deb --build "$DEB_DIR" "${DIST_DIR}/Ayran-Notes-${APP_VERSION}-amd64.deb"
+dpkg-deb --build --root-owner-group "$DEB_DIR" "${DIST_DIR}/Ayran-Notes-${APP_VERSION}-amd64.deb"
 
 echo "✅ Build complete! .deb package is available at ${DIST_DIR}/Ayran-Notes-${APP_VERSION}-amd64.deb"

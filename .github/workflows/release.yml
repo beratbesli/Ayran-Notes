@@ -6,20 +6,26 @@ on:
       - "v*.*.*"
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   release:
     runs-on: ubuntu-22.04
+    env:
+      QT_QPA_PLATFORM: offscreen
+    permissions:
+      contents: write
 
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.11"
+      - name: Install Qt runtime libraries
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libegl1
 
       - name: Verify tag version
         run: |
@@ -27,16 +33,31 @@ jobs:
           tag_version="${GITHUB_REF_NAME#v}"
           test "$tag_version" = "$app_version"
 
+      - name: Test tagged source
+        run: |
+          python -m pip install -e ".[dev]"
+          python -m ruff check .
+          python -m pytest -q
+
       - name: Build AppImage
         run: ./packaging/build_appimage.sh
 
       - name: Build Debian package
         run: ./packaging/build_deb.sh
 
+      - name: Generate checksums
+        run: |
+          cd dist
+          sha256sum Ayran-Notes-*-x86_64.AppImage Ayran-Notes-*-amd64.deb > SHA256SUMS
+
       - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          generate_release_notes: true
-          files: |
-            dist/Ayran-Notes-*-x86_64.AppImage
-            dist/Ayran-Notes-*-amd64.deb
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --title "Ayran Notes $GITHUB_REF_NAME" --generate-notes
+          gh release upload "$GITHUB_REF_NAME" \
+            dist/Ayran-Notes-*-x86_64.AppImage \
+            dist/Ayran-Notes-*-amd64.deb \
+            dist/SHA256SUMS \
+            --repo "$GITHUB_REPOSITORY" --clobber

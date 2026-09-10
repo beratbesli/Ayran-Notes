@@ -1,7 +1,7 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Exit on error
-set -e
+set -euo pipefail
 
 echo "🥛 Building Ayran Notes AppImage..."
 
@@ -11,18 +11,13 @@ PACKAGING_DIR="${PROJECT_ROOT}/packaging"
 BUILD_DIR="${PACKAGING_DIR}/build"
 APPDIR="${PACKAGING_DIR}/Ayran-Notes.AppDir"
 DIST_DIR="${PROJECT_ROOT}/dist"
-APP_VERSION="$(cd "${PROJECT_ROOT}" && python3 -c 'from ayrannotes import __version__; print(__version__)')"
+APP_VERSION="$(sed -n 's/^version = "\([^"]*\)"/\1/p' "${PROJECT_ROOT}/pyproject.toml" | head -n 1)"
 
 cd "$PROJECT_ROOT"
 
 # Check required tools
 if ! command -v python3 &> /dev/null; then
     echo "❌ Error: python3 is required but not installed."
-    exit 1
-fi
-
-if ! command -v pip &> /dev/null; then
-    echo "❌ Error: pip is required but not installed."
     exit 1
 fi
 
@@ -39,16 +34,23 @@ mkdir -p "$APPDIR"
 mkdir -p "$DIST_DIR"
 
 echo "🐍 Setting up virtual environment..."
-python3 -m venv "${BUILD_DIR}/venv"
-source "${BUILD_DIR}/venv/bin/activate"
+PYTHON_RUNNER="${BUILD_DIR}/venv/bin/python"
+if command -v uv &> /dev/null; then
+    uv venv --python 3.13 "${BUILD_DIR}/venv"
+else
+    python3 -m venv "${BUILD_DIR}/venv"
+fi
 
 echo "📦 Installing dependencies..."
-pip install -r requirements.txt
-pip install pyinstaller
+if command -v uv &> /dev/null; then
+    uv pip install --python "${PYTHON_RUNNER}" "${PROJECT_ROOT}[build]"
+else
+    "${PYTHON_RUNNER}" -m pip install "${PROJECT_ROOT}[build]"
+fi
 
 echo "🏗️ Building with PyInstaller..."
 cd "$PACKAGING_DIR"
-pyinstaller ayrannotes.spec --workpath="${BUILD_DIR}/pyinstaller_build" --distpath="${BUILD_DIR}/pyinstaller_dist"
+"${PYTHON_RUNNER}" -m PyInstaller ayrannotes.spec --workpath="${BUILD_DIR}/pyinstaller_build" --distpath="${BUILD_DIR}/pyinstaller_dist"
 
 echo "📁 Creating AppDir structure..."
 cd "$PROJECT_ROOT"
@@ -72,16 +74,25 @@ cp ayrannotes.desktop "${APPDIR}/usr/share/applications/ayrannotes.desktop"
 cp ayrannotes/assets/ayrannotes.png "${APPDIR}/ayrannotes.png"
 cp ayrannotes/assets/ayrannotes.png "${APPDIR}/usr/share/icons/hicolor/256x256/apps/ayrannotes.png"
 
-echo "🐧 Downloading linuxdeploy..."
+echo "🐧 Preparing verified linuxdeploy..."
 cd "$PACKAGING_DIR"
-if [ ! -f "linuxdeploy-x86_64.AppImage" ]; then
-    wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
-    chmod +x linuxdeploy-x86_64.AppImage
+LINUXDEPLOY_VERSION="1-alpha-20251107-1"
+LINUXDEPLOY_SHA256="c20cd71e3a4e3b80c3483cef793cda3f4e990aca14014d23c544ca3ce1270b4d"
+LINUXDEPLOY="linuxdeploy-${LINUXDEPLOY_VERSION}-x86_64.AppImage"
+if [ ! -f "$LINUXDEPLOY" ]; then
+    wget --https-only -q \
+        "https://github.com/linuxdeploy/linuxdeploy/releases/download/${LINUXDEPLOY_VERSION}/linuxdeploy-x86_64.AppImage" \
+        -O "$LINUXDEPLOY"
 fi
+echo "${LINUXDEPLOY_SHA256}  ${LINUXDEPLOY}" | sha256sum --check --status || {
+    echo "❌ Error: linuxdeploy SHA-256 verification failed." >&2
+    exit 1
+}
+chmod +x "$LINUXDEPLOY"
 
 echo "🖼️ Generating AppImage..."
 export ARCH=x86_64
-APPIMAGE_EXTRACT_AND_RUN=1 ./linuxdeploy-x86_64.AppImage --appdir "${APPDIR}" --output appimage
+APPIMAGE_EXTRACT_AND_RUN=1 "./${LINUXDEPLOY}" --appdir "${APPDIR}" --output appimage
 
 # Move to dist
 mv Ayran_Notes-*.AppImage "${DIST_DIR}/Ayran-Notes-${APP_VERSION}-x86_64.AppImage"

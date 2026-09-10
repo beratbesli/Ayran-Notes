@@ -261,7 +261,14 @@ class HistoryDialog(QDialog):
         marker = f" · {self._i18n.t('current_version')}" if current else ""
         raw_date = str(record.get("date", ""))
         try:
-            date = datetime.fromisoformat(raw_date).astimezone().strftime("%d.%m.%Y %H:%M")
+            try:
+                parsed_date = datetime.fromisoformat(raw_date)
+            except ValueError:
+                # Python 3.10 does not accept the +0000 offset form that git
+                # emits, while newer Python versions do. Keep the display
+                # format portable across the supported interpreter matrix.
+                parsed_date = datetime.strptime(raw_date, "%Y-%m-%d %H:%M:%S %z")
+            date = parsed_date.astimezone().strftime("%d.%m.%Y %H:%M")
         except (TypeError, ValueError):
             date = raw_date
         message = str(record.get("message", ""))
