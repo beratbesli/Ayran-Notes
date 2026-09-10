@@ -1,6 +1,5 @@
 """Storage safety and Markdown portability tests."""
 
-import json
 import tempfile
 import unittest
 from pathlib import Path

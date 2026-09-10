@@ -105,12 +105,15 @@ git clone https://github.com/beratbesli/Ayran-Notes.git
 cd Ayran-Notes
 
 # Install dependencies
-pip install -r requirements.txt
-# (or pip install --break-system-packages -r requirements.txt)
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[dev]"
 
 # Run the app
 python3 run.py
 ```
+
+Avoid installing into the operating system's managed Python environment. A virtual environment, `pipx`, or `uv tool` keeps project packages isolated and does not require `--break-system-packages`.
 
 ### Packaging
 Scripts are provided to generate standalone packages:
@@ -120,6 +123,14 @@ Scripts are provided to generate standalone packages:
 The current release is `0.0.2`. GitHub Releases are built automatically when a
 matching version tag such as `v0.0.2` is pushed. The release includes both a
 versioned AppImage and Debian package.
+
+Each release also contains `SHA256SUMS`. After downloading a package and the checksum file into the same directory, verify it before installing:
+
+```bash
+sha256sum --check SHA256SUMS
+```
+
+See [CHANGELOG.md](CHANGELOG.md) for release highlights and [SECURITY.md](SECURITY.md) for private vulnerability reporting.
 
 ---
 

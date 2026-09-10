@@ -5,6 +5,9 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+packaging/build/
+packaging/Ayran-Notes.AppDir/
+packaging/linuxdeploy-*.AppImage
 *.egg
 .eggs/
 venv/
