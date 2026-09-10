@@ -9,6 +9,11 @@ All notable changes to Ayran Notes are documented here. The project follows sema
 - Added SHA-256 checksums to future GitHub releases.
 - Added a security policy and automated dependency updates.
 
+## 0.1.1 - 2026-09-10
+
+- Corrected the application and Python package version after the `v0.1.0` maintenance release.
+- Published the release with a standalone AppImage, Debian package, and SHA-256 checksums.
+
 ## 0.0.2 - 2026-09-01
 
 - Added local Git-backed note history, version previews, safe restore, and deleted-note recovery.

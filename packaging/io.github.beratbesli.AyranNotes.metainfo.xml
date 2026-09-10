@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.beratbesli.AyranNotes</id>
+  <name>Ayran Notes</name>
+  <summary>Markdown note-taking with local Git history</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <developer id="io.github.beratbesli">
+    <name>Berat Besli</name>
+  </developer>
+  <description>
+    <p>A local-first Markdown writing application for Linux with live preview and local Git history.</p>
+    <p>Notes remain readable Markdown files, while version previews and safe recovery protect your work.</p>
+  </description>
+  <url type="homepage">https://github.com/beratbesli/Ayran-Notes</url>
+  <url type="bugtracker">https://github.com/beratbesli/Ayran-Notes/issues</url>
+  <launchable type="desktop-id">ayrannotes.desktop</launchable>
+  <provides>
+    <binary>ayrannotes</binary>
+  </provides>
+  <keywords>
+    <keyword>notes</keyword>
+    <keyword>markdown</keyword>
+    <keyword>editor</keyword>
+  </keywords>
+  <content_rating type="oars-1.1">
+    <content_attribute id="social-info">none</content_attribute>
+  </content_rating>
+  <releases>
+    <release version="__APP_VERSION__" date="__RELEASE_DATE__" />
+  </releases>
+</component>

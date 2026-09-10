@@ -120,8 +120,8 @@ Scripts are provided to generate standalone packages:
 - **AppImage:** `./packaging/build_appimage.sh`
 - **.deb Package:** `./packaging/build_deb.sh`
 
-The current release is `0.0.2`. GitHub Releases are built automatically when a
-matching version tag such as `v0.0.2` is pushed. The release includes both a
+The current release is `0.1.1`. GitHub Releases are built automatically when a
+matching version tag such as `v0.1.1` is pushed. The release includes both a
 versioned AppImage and Debian package.
 
 Each release also contains `SHA256SUMS`. After downloading a package and the checksum file into the same directory, verify it before installing:

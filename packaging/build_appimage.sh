@@ -12,6 +12,7 @@ BUILD_DIR="${PACKAGING_DIR}/build"
 APPDIR="${PACKAGING_DIR}/Ayran-Notes.AppDir"
 DIST_DIR="${PROJECT_ROOT}/dist"
 APP_VERSION="$(sed -n 's/^version = "\([^"]*\)"/\1/p' "${PROJECT_ROOT}/pyproject.toml" | head -n 1)"
+RELEASE_DATE="$(git -C "${PROJECT_ROOT}" log -1 --format=%cs 2>/dev/null || date -u +%F)"
 
 cd "$PROJECT_ROOT"
 
@@ -59,6 +60,7 @@ cd "$PROJECT_ROOT"
 mkdir -p "${APPDIR}/usr/bin"
 mkdir -p "${APPDIR}/usr/lib"
 mkdir -p "${APPDIR}/usr/share/applications"
+mkdir -p "${APPDIR}/usr/share/metainfo"
 mkdir -p "${APPDIR}/usr/share/icons/hicolor/256x256/apps"
 
 # Copy PyInstaller output to usr/bin
@@ -71,6 +73,9 @@ chmod +x "${APPDIR}/AppRun"
 # Copy desktop file and icon
 cp ayrannotes.desktop "${APPDIR}/ayrannotes.desktop"
 cp ayrannotes.desktop "${APPDIR}/usr/share/applications/ayrannotes.desktop"
+sed -e "s/__APP_VERSION__/${APP_VERSION}/g" -e "s/__RELEASE_DATE__/${RELEASE_DATE}/g" \
+    "${PACKAGING_DIR}/io.github.beratbesli.AyranNotes.metainfo.xml" > \
+    "${APPDIR}/usr/share/metainfo/io.github.beratbesli.AyranNotes.metainfo.xml"
 cp ayrannotes/assets/ayrannotes.png "${APPDIR}/ayrannotes.png"
 cp ayrannotes/assets/ayrannotes.png "${APPDIR}/usr/share/icons/hicolor/256x256/apps/ayrannotes.png"
 
