@@ -70,7 +70,7 @@ def _fsync_directory(directory: Path) -> None:
     try:
         descriptor = os.open(directory, flags)
     except OSError as error:
-        if error.errno in _UNSUPPORTED_FSYNC_ERRORS:
+        if error.errno in _UNSUPPORTED_FSYNC_ERRORS or (os.name == "nt" and error.errno == errno.EACCES):
             return
         raise
     try:
