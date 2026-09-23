@@ -88,22 +88,36 @@ class GitVersioning:
 
 
     def commit_change(self, notes_dir: Path, message: str) -> bool:
-        """Commit Markdown note changes without touching other files."""
+        """Commit only application note files, preserving other staged changes."""
         if not self.is_repo(notes_dir):
             return False
 
         try:
+            tracked = subprocess.run(
+                ["git", "ls-files", "-z", "--cached"],
+                cwd=notes_dir,
+                check=True,
+                capture_output=True,
+            ).stdout.decode("utf-8", errors="surrogateescape").split("\0")
+            note_paths = sorted({
+                path for path in tracked if _NOTE_PATH.fullmatch(path)
+            } | {
+                path.name for path in notes_dir.iterdir()
+                if path.is_file() and _NOTE_PATH.fullmatch(path.name)
+            })
+            if not note_paths:
+                return True
+
             subprocess.run(
-                ["git", "add", "-A", "--", "*.md"],
+                ["git", "add", "-A", "--", *note_paths],
                 cwd=notes_dir,
                 check=True,
                 capture_output=True
             )
 
-            # Check only the staged Markdown changes. Unrelated files may
-            # exist in a shared notes directory and must remain untouched.
+            # Other files may already be staged by the user.
             staged = subprocess.run(
-                ["git", "diff", "--cached", "--quiet"],
+                ["git", "diff", "--cached", "--quiet", "--", *note_paths],
                 cwd=notes_dir,
                 check=False,
                 capture_output=True,
@@ -111,9 +125,11 @@ class GitVersioning:
 
             if staged.returncode == 0:
                 return True  # Nothing to commit
+            if staged.returncode != 1:
+                raise subprocess.CalledProcessError(staged.returncode, staged.args, staged.stdout, staged.stderr)
 
             subprocess.run(
-                ["git", "commit", "-m", message],
+                ["git", "commit", "--only", "-m", message, "--", *note_paths],
                 cwd=notes_dir,
                 check=True,
                 capture_output=True

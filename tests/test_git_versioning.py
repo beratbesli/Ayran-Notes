@@ -38,7 +38,7 @@ class GitVersioningTests(unittest.TestCase):
         notes_dir.mkdir()
         git_manager.init_repo(notes_dir)
 
-        file1 = notes_dir / "note1.md"
+        file1 = notes_dir / "aaaaaaaaaaaa.md"
         file1.write_text("Hello World", encoding="utf-8")
 
         self.assertTrue(git_manager.commit_change(notes_dir, "Create: note1"))
@@ -65,7 +65,7 @@ class GitVersioningTests(unittest.TestCase):
         notes_dir.mkdir()
         git_manager.init_repo(notes_dir)
 
-        (notes_dir / "note.md").write_text("Markdown", encoding="utf-8")
+        (notes_dir / "aaaaaaaaaaaa.md").write_text("Markdown", encoding="utf-8")
         (notes_dir / "settings.json").write_text("{}", encoding="utf-8")
         (notes_dir / "attachment.pdf").write_bytes(b"pdf")
 
@@ -77,7 +77,7 @@ class GitVersioningTests(unittest.TestCase):
             capture_output=True,
             text=True,
         ).stdout.splitlines()
-        self.assertEqual(tracked, ["note.md"])
+        self.assertEqual(tracked, ["aaaaaaaaaaaa.md"])
 
         (notes_dir / "settings.json").write_text('{"changed": true}', encoding="utf-8")
         self.assertTrue(git_manager.commit_change(notes_dir, "Metadata change"))
@@ -85,6 +85,36 @@ class GitVersioningTests(unittest.TestCase):
             len(git_manager.get_history(notes_dir)),
             1,
         )
+
+    def test_commit_preserves_unrelated_staged_files(self) -> None:
+        git_manager = GitVersioning()
+        notes_dir = self.tmp_path / "notes"
+        notes_dir.mkdir()
+        git_manager.init_repo(notes_dir)
+        note = notes_dir / "aaaaaaaaaaaa.md"
+        note.write_text("Note", encoding="utf-8")
+        (notes_dir / "unrelated.md").write_text("User file", encoding="utf-8")
+        (notes_dir / "settings.json").write_text("{}", encoding="utf-8")
+        subprocess.run(
+            ["git", "add", "--", "unrelated.md", "settings.json"],
+            cwd=notes_dir, check=True, capture_output=True,
+        )
+
+        self.assertTrue(git_manager.commit_change(notes_dir, "Create note"))
+        committed = subprocess.run(
+            ["git", "ls-tree", "-r", "--name-only", "HEAD"],
+            cwd=notes_dir, check=True, capture_output=True, text=True,
+        ).stdout.splitlines()
+        staged = subprocess.run(
+            ["git", "diff", "--cached", "--name-only"],
+            cwd=notes_dir, check=True, capture_output=True, text=True,
+        ).stdout.splitlines()
+        self.assertEqual(committed, ["aaaaaaaaaaaa.md"])
+        self.assertEqual(staged, ["settings.json", "unrelated.md"])
+
+        # A staged user change alone must not create a second note commit.
+        self.assertTrue(git_manager.commit_change(notes_dir, "No note change"))
+        self.assertEqual(len(git_manager.get_history(notes_dir)), 1)
 
     def test_storage_engine_integration(self) -> None:
         commits = []
